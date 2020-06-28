@@ -2,5 +2,5 @@ gerber
 *.gbr
 *.drl
 *.zip
-.sch-bak
-.kicad_pcb-bak
+*.sch-bak
+*.kicad_pcb-bak

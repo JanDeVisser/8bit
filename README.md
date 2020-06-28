@@ -5,67 +5,47 @@ Please describe me.
 Register IDs
 ===
 
-ID        Register         R W
-0000 00   A                x x
-0001 01   B                x x
-0010 02   C                x x
-0011 03   D                x x
-0100 04   ALU LHS/Result   x x		Put: LHS, Get: Result
-0101 05   ALU Operation    - x		Put: RHS, OP0-3: Operation
-0110 06   Instruction      - x
-0111 07   Mem              x x
-1000 08   Prog Counter     x x
-1001 09   SP               x x
-1010 10   Si               x x
-1011 11   Di               x x
-1100 12   
-1101 13   
-1110 14	  Monitor          x x
-1111 15   Mem Addr         - x
+ID       | Register       |  R W  | Remarks
+---------|----------------|-------|--------------
+0000 00  | A              |  x x  |
+0001 01  | B              |  x x  |
+0010 02  | C              |  x x  |
+0011 03  | D              |  x x  |
+0100 04  | ALU LHS/Result |  x x  | Put: LHS, Get: Result
+0101 05  | ALU Operation  |  - x  | Put: RHS, OP0-3: Operation
+0110 06  | Instruction    |  - x  |
+0111 07  | Mem            |  x x  |
+1000 08  | Prog Counter   |  x x  |
+1001 09  | SP             |  x x  |
+1010 10  | Si             |  x x  |
+1011 11  | Di             |  x x  |
+1100 12  |                |       |
+1101 13  |                |       |
+1110 14	 | Monitor        |  x x  |
+1111 15  | Mem Addr       |  - x  |
 
 Control Lines
 ===
-1   GND         Common Ground
-2   VCC         +5V Power
-3   CLK         Square Wave Clock 
-4   ~CLK        Reverse Clock
-5   ^CLK        "Burst" Clock at rising edge of CLK
-6   HLT         Halts clock
-7   ~SUS        Requests Control Unit to cease dispatching instructions.
-8   ~XDATA      8 bit Data transfer instruction
-9   ~XADDR	16 bit address transfer instruction
-10  ~SACK       Set by Control Unit as acknowlegement of SUS.
-11  OP0         Custom Operation codes used by various instructions. See below.
-12  OP1		"
-13  OP2		"
-14  OP3		"
-15  RST         Reset
-16  ~IO         In/Out instruction
-17  PUT0        Register ID of the target of a transfer instruction.
-18  PUT1	"
-19  PUT2	"
-20  PUT3	"
-21  GET0        Register ID of the source of a transfer instruction.
-22  GET1	"
-23  GET2	"
-24  GET3	"
-25  D0
-26  D1
-27  D2
-28  D3
-29  D4
-30  D5
-31  D6
-32  D7
-33  A0/8
-34  A1/9
-35  A2/10
-36  A3/11
-37  A4/12
-38  A5/13
-39  A6/14
-40  A7/15
 
+Pin   | Name                   | Description
+------|------------------------|-----------------------
+1     | `GND`                  | Common Ground
+2     | `VCC`                  | +5V Power
+3     | `CLK`                  | Square Wave Clock 
+4     | ~~`CLK`~~              | Reverse Clock
+5     | `^CLK`                 | "Burst" Clock at rising edge of CLK
+6     | `HLT`                  | Halts clock
+7     | ~~`SUS`~~              | Requests Control Unit to cease dispatching instructions.
+8     | ~~`XDATA`~~            | 8 bit Data transfer instruction
+9     | ~~`XADDR`~~            | 16 bit address transfer instruction
+10    | ~~`SACK`~~             | Set by Control Unit as acknowlegement of SUS.
+11-14 | `OP0`-`OP3`            | Custom Operation codes used by various instructions. See below.
+15    | `RST`                  | Reset
+16    | ~~`IO`~~               | In/Out instruction
+17-20 | `PUT0`-`PUT3`          | Register ID of the target of a transfer instruction.
+21-24 | `GET0`-`GET3`          | Register ID of the source of a transfer instruction.
+25-32 | `D0`-`D7`              | Databus
+33-40 | `A0`-`A7` / `A8`-`A15` | Address bus
 
 Operation Codes
 ===

@@ -92,19 +92,19 @@ As determined by Julian Ilett in https://www.youtube.com/watch?v=15M63Zqkthk
 
 C3-C0 :arrow_down: BA :arrow_right: | 11 | 10 | 01 | 00 | Operation
 ------|----|----|----|----|-----------
-  00  | 0  | 0  | 0  | 0  | All Zero
-  01  | 0  | 0  | 0  | 1  | NOR
-  02  | 0  | 0  | 1  | 0  | A & !B
-  03  | 0  | 0  | 1  | 1  | !B
-  04  | 0  | 1  | 0  | 0  | !A & B
-  05  | 0  | 1  | 0  | 1  | !A
-  06  | 0  | 1  | 1  | 0  | XOR
-  07  | 0  | 1  | 1  | 1  | NAND
-  08  | 1  | 0  | 0  | 0  | AND
-  09  | 1  | 0  | 0  | 1  | XNOR
-  0A  | 1  | 0  | 1  | 0  | A
-  0B  | 1  | 0  | 1  | 1  | A | !B
-  0C  | 1  | 1  | 0  | 0  | B
-  0D  | 1  | 1  | 0  | 1  | !A | B
-  0E  | 1  | 1  | 1  | 0  | OR
-  0F  | 1  | 1  | 1  | 1  | All One
+  0x0  | 0  | 0  | 0  | 0  | All Zero
+  0x1  | 0  | 0  | 0  | 1  | A NOR B
+  0x2  | 0  | 0  | 1  | 0  | A AND (NOT B)
+  0x3  | 0  | 0  | 1  | 1  | NOT B
+  0x4  | 0  | 1  | 0  | 0  | (NOT A) AND B
+  0x5  | 0  | 1  | 0  | 1  | NOT A
+  0x6  | 0  | 1  | 1  | 0  | A XOR B
+  0x7  | 0  | 1  | 1  | 1  | A NAND B
+  0x8  | 1  | 0  | 0  | 0  | A AND B
+  0x9  | 1  | 0  | 0  | 1  | A XNOR B
+  0xA  | 1  | 0  | 1  | 0  | A
+  0xB  | 1  | 0  | 1  | 1  | A OR (NOT B)
+  0xC  | 1  | 1  | 0  | 0  | B
+  0xD  | 1  | 1  | 0  | 1  | (NOT A) OR B
+  0xE  | 1  | 1  | 1  | 0  | A OR B
+  0xF  | 1  | 1  | 1  | 1  | All One

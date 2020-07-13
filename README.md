@@ -91,7 +91,7 @@ XDATA:
 
 As determined by Julian Ilett in https://www.youtube.com/watch?v=15M63Zqkthk
 
-      |         BA        |
+      | BA | BA | BA | BA |
 C3-C0 | 11 | 10 | 01 | 00 | Operation
 ------|----|----|----|----|-----------
   00  | 0  | 0  | 0  | 0  | All Zero

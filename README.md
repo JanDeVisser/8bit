@@ -50,37 +50,36 @@ Pin   | Name                   | Description
 
 #### XADDR 
 
-OP | |
----|-|---
-0-1|01|Increment source (Get) register
-   |10|Decrement source (Get) register
-2-3| X|X
+OP0-3 |Function
+---|---
+`XX01`|Increment source (Get) register
+`XX10`|Decrement source (Get) register
+
 
 #### XDATA
 	
 _When moving data between 8- and 16-bit registers:_
 	
-OP | |
----|-|---
-0-2|X|X
- 3 |0|Transfer to/from the LSB of the 16-bit register
- 3 |1|Transfer to/from the MSB of the 16-bit register
+OP0-3 |Function
+------|--------
+`0XXX`  |Transfer to/from the LSB of the 16-bit register
+`1XXX`  |Transfer to/from the MSB of the 16-bit register
  
-_When the target register is ALU Operation (0x5):
+_When the target register is ALU Operation (`0x5`):_
 
 OP0-3|Operation
 -----|-----------
-0x0|ADD
-0x1|ADC
-0x2|SUB
-0x3|SUBC
+`0x0`|`ADD`
+`0x1`|`ADC`
+`0x2`|`SUB`
+`0x3`|`SUBC`
 ...|...
-0x8|AND
-0x9|OR
-0xA|XOR
-0xB|NOT LHS
-0xC|SHL
-0xD|SHR
+`0x8`|`AND`
+`0x9`|`OR`
+`0xA`|`XOR`
+`0xB`|`NOT LHS`
+`0xC`|`SHL`
+`0xD`|`SHR`
 ...|...
 
 

@@ -83,3 +83,30 @@ XDATA:
 
 
 
+# N O T E S
+
+
+74xxx253 Function Table
+===
+
+As determined by Julian Ilett in https://www.youtube.com/watch?v=15M63Zqkthk
+
+      |         BA        |
+C3-C0 | 11 | 10 | 01 | 00 | Operation
+------|----|----|----|----|-----------
+  00  | 0  | 0  | 0  | 0  | All Zero
+  01  | 0  | 0  | 0  | 1  | NOR
+  02  | 0  | 0  | 1  | 0  | A & !B
+  03  | 0  | 0  | 1  | 1  | !B
+  04  | 0  | 1  | 0  | 0  | !A & B
+  05  | 0  | 1  | 0  | 1  | !A
+  06  | 0  | 1  | 1  | 0  | XOR
+  07  | 0  | 1  | 1  | 1  | NAND
+  08  | 1  | 0  | 0  | 0  | AND
+  09  | 1  | 0  | 0  | 1  | XNOR
+  0A  | 1  | 0  | 1  | 0  | A
+  0B  | 1  | 0  | 1  | 1  | A | !B
+  0C  | 1  | 1  | 0  | 0  | B
+  0D  | 1  | 1  | 0  | 1  | !A | B
+  0E  | 1  | 1  | 1  | 0  | OR
+  0F  | 1  | 1  | 1  | 1  | All One

@@ -2,8 +2,7 @@
 
 Please describe me.
 
-Register IDs
-===
+### Register IDs
 
 ID       | Register       |  R W  | Remarks
 ---------|----------------|-------|--------------
@@ -24,8 +23,8 @@ ID       | Register       |  R W  | Remarks
 1110 14	 | Monitor        |  x x  |
 1111 15  | Mem Addr       |  - x  |
 
-Control Lines
-===
+### Control Lines
+
 
 Pin   | Name                   | Description
 ------|------------------------|-----------------------
@@ -47,47 +46,48 @@ Pin   | Name                   | Description
 25-32 | `D0`-`D7`              | Databus
 33-40 | `A0`-`A7` / `A8`-`A15` | Address bus
 
-Operation Codes
-===
+### Operation Codes
 
-XADDR: 
-	If the source (Get) register is a 16 bit register:
-	OP2: If Low register will be incremented/decremented on clock rising edge	
-        OP0-1:
-		01: Increment source (Get) register
-		10: Decrement source (Get) register
+#### XADDR 
 
-XDATA:	
-	Target register 8-bit or 16-bit data registers:
-	====
-	OP0-OP2: X
-	OP3: If either target or destination is a 16 bit register, 0 indicates the 
-	data should be transfered to/from the LSB of the register, and conversely 1
-	indicates a data transfer to/from the MSB. If both source and targets are 8 
-	bits, this operation code, like OP0-OP2, has no effect.
+OP | |
+---|-|---
+0-1|01|Increment source (Get) register
+   |10|Decrement source (Get) register
+2-3| X|X
 
-	Target register ALU Operation (0x5):
-	====
-	OP0-OP3:
-	0x0=ADD
-	0x1=ADC
-	0x2=SUB
-	0x3=SUBC
+#### XDATA
+	
+_When moving data between 8- and 16-bit registers:_
+	
+OP | |
+---|-|---
+0-2|X|X
+ 3 |0|Transfer to/from the LSB of the 16-bit register
+ 3 |1|Transfer to/from the MSB of the 16-bit register
+ 
+_When the target register is ALU Operation (0x5):
 
-	0x8=AND
-	0x9=OR
-	0xA=XOR
-	0xB=NOT (LHS)
-	0xC=SHL
-	0xD=SHR
+OP0-3|Operation
+-----|-----------
+0x0|ADD
+0x1|ADC
+0x2|SUB
+0x3|SUBC
+...|...
+0x8|AND
+0x9|OR
+0xA|XOR
+0xB|NOT LHS
+0xC|SHL
+0xD|SHR
+...|...
 
 
+## N O T E S
 
-# N O T E S
 
-
-74xxx253 Function Table
-===
+### 74xxx253 Function Table
 
 As determined by Julian Ilett in https://www.youtube.com/watch?v=15M63Zqkthk
 

@@ -18,9 +18,9 @@ ID       | Register       |  R W  | Remarks
 1001 09  | SP             |  x x  |
 1010 10  | Si             |  x x  |
 1011 11  | Di             |  x x  |
-1100 12  |                |       |
+1100 12  | TX             |       |
 1101 13  |                |       |
-1110 14	 | Monitor        |  x x  |
+1110 14	 | Monitor        |  x -  |
 1111 15  | Mem Addr       |  - x  |
 
 ### Control Lines
@@ -30,7 +30,7 @@ Pin   | Name                   | Description
 ------|------------------------|-----------------------
 1     | `GND`                  | Common Ground
 2     | `VCC`                  | +5V Power
-3     | `CLK`                  | Square Wave Clock 
+3     | `CLK`                  | Square Wave Clock
 4     | ~~`CLK`~~              | Reverse Clock
 5     | `^CLK`                 | "Burst" Clock at rising edge of CLK
 6     | `HLT`                  | Halts clock
@@ -48,7 +48,7 @@ Pin   | Name                   | Description
 
 ### Operation Codes
 
-#### XADDR 
+#### XADDR
 
 OP0-3 |Function
 ---|---
@@ -57,14 +57,14 @@ OP0-3 |Function
 
 
 #### XDATA
-	
+
 _When moving data between 8- and 16-bit registers:_
-	
+
 OP0-3 |Function
 ------|--------
-`0XXX`  |Transfer to/from the LSB of the 16-bit register
-`1XXX`  |Transfer to/from the MSB of the 16-bit register
- 
+`XXX0`|Transfer to/from the LSB of the 16-bit register
+`XXX1`|Transfer to/from the MSB of the 16-bit register
+
 _When the target register is ALU Operation (`0x5`):_
 
 OP0-3|Operation

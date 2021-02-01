@@ -5,15 +5,16 @@
 #ifndef EMU_MEMORY_H
 #define EMU_MEMORY_H
 
-#include "system.h"
+#include "addressregister.h"
+#include "systembus.h"
 
 struct MemImage {
-  word address;
-  word size;
-  byte *contents;
+  word        address;
+  word        size;
+  const byte *contents;
 };
 
-class Memory : public OwnedComponent {
+class Memory : public AddressRegister {
 private:
   word  ram_start;
   word  ram_size;
@@ -21,14 +22,16 @@ private:
   word  rom_size;
   byte *ram;
   byte *rom;
-  word  address_ptr = 0;
 
 public:
-  Memory(System *s, word, word, word, word, MemImage * = nullptr);
+  Memory(word, word, word, word, MemImage * = nullptr);
   ~Memory() override;
 
   constexpr static byte MEM_ID = 0x7;
   constexpr static byte ADDR_ID = 0xF;
+  constexpr static int EV_CONTENTSCHANGED = 2;
+
+  void add(MemImage *);
 
   bool inRAM(word addr) const {
     return (addr >= ram_start) && (addr < (ram_start + ram_size));
@@ -62,16 +65,7 @@ public:
     }
   }
 
-  void setAddress(word addr) {
-    address_ptr = addr;
-  }
-
-  word getAddress() const {
-    return address_ptr;
-  }
-
   SystemError status() override;
-  SystemError reset() override;
   SystemError onRisingClockEdge() override;
   SystemError onHighClock() override;
 };

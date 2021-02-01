@@ -7,27 +7,20 @@
 
 #include <string>
 #include <utility>
-#include "system.h"
+#include "systembus.h"
 
-class AddressRegister : public OwnedComponent {
+class AddressRegister : public ConnectedComponent {
 private:
-  int          regId;
   word         value = 0;
-  std::string  name;
 
 public:
-  AddressRegister(System *s, int registerID, std::string n) : OwnedComponent(s), regId(registerID) {
-    name = std::move(n);
-  }
-
-  int id() const override { return regId; }
-  void setValue(word val) { value = val; }
-  word getValue() const { return value; }
-
-  SystemError status() override;
-  SystemError reset() override;
-  SystemError onRisingClockEdge() override;
-  SystemError onHighClock() override;
+               AddressRegister(int, std::string);
+  void         setValue(word val);
+  int          getValue() const override { return value; }
+  SystemError  status() override;
+  SystemError  reset() override;
+  SystemError  onRisingClockEdge() override;
+  SystemError  onHighClock() override;
 };
 
 #endif //EMU_ADDRESSREGISTER_H

@@ -2,19 +2,18 @@
 #include <iostream>
 #include <gtest/gtest.h>
 #include "register.h"
-#include "mocksystem.h"
+#include "harness.h"
 
 static int REGID = 0xC;
 
 class RegisterTest : public ::testing::Test {
 protected:
-  MockSystem *system = nullptr;
+  Harness *system = nullptr;
   Register *reg = nullptr;
 
   void SetUp() override {
-    system = new MockSystem();
-    reg = new Register(system, REGID);
-    system -> reg = reg;
+    reg = new Register(REGID);
+    system = new Harness(reg);
   }
 
   void TearDown() override {
@@ -31,7 +30,7 @@ TEST_F(RegisterTest, canPut) {
 TEST_F(RegisterTest, canGet) {
   reg -> setValue(0x42);
   system -> cycle(false, true, REGID, 1, 0, 0x37);
-  ASSERT_EQ(system->data_bus, 0x42);
+  ASSERT_EQ(system->bus.readDataBus(), 0x42);
 }
 
 TEST_F(RegisterTest, dontPutWhenOtherRegAddressed) {
@@ -43,5 +42,5 @@ TEST_F(RegisterTest, dontPutWhenOtherRegAddressed) {
 TEST_F(RegisterTest, dontGetWhenOtherRegAddressed) {
   reg -> setValue(0x42);
   system -> cycle(false, true, 2, 1, 0, 0x37);
-  ASSERT_EQ(system->data_bus, 0x37);
+  ASSERT_EQ(system->bus.readDataBus(), 0x37);
 }

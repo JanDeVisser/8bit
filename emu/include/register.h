@@ -5,19 +5,17 @@
 #ifndef EMU_REGISTER_H
 #define EMU_REGISTER_H
 
-#include "system.h"
+#include "systembus.h"
 
-class Register : public OwnedComponent {
+class Register : public ConnectedComponent {
 private:
-  int     regId;
-  byte    value = 0;
+  byte        value = 0;
 
 public:
-  Register(System *s, int registerID) : OwnedComponent(s), regId(registerID) { }
+  explicit    Register(int);
 
-  int id() const override { return regId; }
-  void setValue(byte val) { value = val; }
-  byte getValue() const { return value; }
+  void        setValue(byte val);
+  int         getValue() const override { return value; }
 
   SystemError status() override;
   SystemError reset() override;

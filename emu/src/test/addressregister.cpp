@@ -2,19 +2,18 @@
 #include <iostream>
 #include <gtest/gtest.h>
 #include "addressregister.h"
-#include "mocksystem.h"
+#include "harness.h"
 
 static int REGID = 0xC;
 
 class AddressRegisterTest : public ::testing::Test {
 protected:
-  MockSystem *system = nullptr;
+  Harness *system = nullptr;
   AddressRegister *reg = nullptr;
 
   void SetUp() override {
-    system = new MockSystem();
-    reg = new AddressRegister(system, REGID, "TEST");
-    system -> reg = reg;
+    reg = new AddressRegister(REGID, "TEST");
+    system = new Harness(reg);
   }
 
   void TearDown() override {
@@ -31,14 +30,14 @@ TEST_F(AddressRegisterTest, canPutLSB) {
 
 TEST_F(AddressRegisterTest, canPutMSB) {
   reg -> setValue(0x5555);
-  system -> cycle(false, true, 1, REGID, OP_MSB, 0x42);
+  system -> cycle(false, true, 1, REGID, SystemBus::OP_MSB, 0x42);
   ASSERT_EQ(reg -> getValue(), 0x4255);
 }
 
 TEST_F(AddressRegisterTest, canPutLSBThenMSB) {
   reg -> setValue(0x5555);
   system -> cycle(false, true, 1, REGID, 0, 0x37);
-  system -> cycle(false, true, 1, REGID, OP_MSB, 0x42);
+  system -> cycle(false, true, 1, REGID, SystemBus::OP_MSB, 0x42);
   ASSERT_EQ(reg -> getValue(), 0x4237);
 }
 
@@ -51,20 +50,20 @@ TEST_F(AddressRegisterTest, canPutAddr) {
 TEST_F(AddressRegisterTest, canGetAddr) {
   reg -> setValue(0x4237);
   system -> cycle(true, false, REGID, 1, 0, 0x72);
-  ASSERT_EQ(system->data_bus, 0x37);
-  ASSERT_EQ(system->addr_bus, 0x42);
+  ASSERT_EQ(system->bus.readDataBus(), 0x37);
+  ASSERT_EQ(system->bus.readAddrBus(), 0x42);
 }
 
 TEST_F(AddressRegisterTest, canGetLSB) {
   reg -> setValue(0x4237);
   system -> cycle(false, true, REGID, 1, 0, 0x72);
-  ASSERT_EQ(system->data_bus, 0x37);
+  ASSERT_EQ(system->bus.readDataBus(), 0x37);
 }
 
 TEST_F(AddressRegisterTest, canGetMSB) {
   reg -> setValue(0x4237);
-  system -> cycle(false, true, REGID, 1, OP_MSB, 0x72);
-  ASSERT_EQ(system->data_bus, 0x42);
+  system -> cycle(false, true, REGID, 1, SystemBus::OP_MSB, 0x72);
+  ASSERT_EQ(system->bus.readDataBus(), 0x42);
 }
 
 TEST_F(AddressRegisterTest, dontPutWhenOtherRegAddressed) {
@@ -76,5 +75,5 @@ TEST_F(AddressRegisterTest, dontPutWhenOtherRegAddressed) {
 TEST_F(AddressRegisterTest, dontGetWhenOtherRegAddressed) {
   reg -> setValue(0x5555);
   system -> cycle(false, true, 2, 1, 0, 0x37);
-  ASSERT_EQ(system->data_bus, 0x37);
+  ASSERT_EQ(system->bus.readDataBus(), 0x37);
 }

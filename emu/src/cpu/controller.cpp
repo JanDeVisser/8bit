@@ -5,12 +5,16 @@
 #include "addressregister.h"
 #include "controller.h"
 #include "register.h"
-#include "realsystem.h"
+#include "backplane.h"
 
-Controller::Controller(System *s, MicroCode *mc) : Register(s, IR), microCode(mc) {
+Controller::Controller(MicroCode *mc) : Register(IR), microCode(mc) {
 //  for (int ix = 0; mc[ix].instruction; ix++) {
 //    //
 //  }
+}
+
+std::string Controller::instruction() const {
+  return (microCode[getValue()].opcode != getValue()) ? "hlt" : microCode[getValue()].instruction;
 }
 
 SystemError Controller::status() {
@@ -19,55 +23,51 @@ SystemError Controller::status() {
 }
 
 SystemError Controller::reset() {
+  this -> Register::reset();
   step = 0;
   return NoError;
 }
 
-MicroCode * Controller::findMicroCode() {
-  for (int ix = 0; microCode[ix].instruction || microCode[ix].step; ix++) {
-    if (microCode[ix].instruction == getValue() && microCode[ix].step == step) {
-      return microCode + ix;
-    }
-  }
-  return nullptr;
+const MicroCode::MicroCodeStep & Controller::findMicroCodeStep() {
+  return microCode[getValue()].steps[step - 2];
 }
 
 SystemError Controller::onLowClock() {
   switch (step) {
     case 0:
-      system()->xaddr(PC, MEMADDR, OP_INC);
+      bus()->xaddr(PC, MEMADDR, SystemBus::OP_INC);
       break;
     case 1:
-      system()->xdata(MEM, IR, OP_NONE);
+      bus()->xdata(MEM, IR, SystemBus::OP_NONE);
       break;
     default:
-      MicroCode *mc = findMicroCode();
-      if (mc) {
-        if (mc -> opflags & OP_DONE) {
+      MicroCode::MicroCodeStep mc = findMicroCodeStep();
+      if (mc.action) {
+        if (mc.opflags & SystemBus::OP_DONE) {
           step = -1;
         }
-        switch (mc->action) {
+        switch (mc.action) {
           case MicroCode::XDATA:
-            system()->xdata(mc->src, mc->target, mc->opflags & OP_MASK);
+            bus()->xdata(mc.src, mc.target, mc.opflags & SystemBus::OP_MASK);
             break;
           case MicroCode::XADDR:
-            system()->xaddr(mc->src, mc->target, mc->opflags & OP_MASK);
+            bus()->xaddr(mc.src, mc.target, mc.opflags & SystemBus::OP_MASK);
             break;
           case MicroCode::OTHER:
-            switch (mc->opflags & OP_MASK) {
-              case OP_HALT:
+            switch (mc.opflags & SystemBus::OP_MASK) {
+              case SystemBus::OP_HALT:
                 fprintf(stderr, "Halting system\n");
-                system()->stop();
+                bus()->stop();
                 break;
               default:
                 fprintf(stderr, "Unhandled operation flag '%02x' for instruction %02x, step %d\n",
-                        mc -> opflags, getValue(), step);
+                        mc.opflags, getValue(), step);
                 return InvalidMicroCode;
             }
             break;
           default:
             fprintf(stderr, "Unhandled microcode action %d for instruction %02x, step %d\n",
-                    mc -> action, getValue(), step);
+                    mc.action, getValue(), step);
             return InvalidMicroCode;
         }
       } else {
@@ -77,5 +77,6 @@ SystemError Controller::onLowClock() {
       break;
   }
   step++;
+  sendEvent(EV_STEPCHANGED);
   return NoError;
 }

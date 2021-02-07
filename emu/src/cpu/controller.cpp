@@ -19,7 +19,7 @@ MicroCodeRunner::MicroCodeRunner(SystemBus *bus, const MicroCode *microCode)  :
     do {
       ix++;
       steps.emplace_back(mc->steps[ix]);
-    } while (mc -> steps[ix].opflags & SystemBus::Done);
+    } while (!(mc -> steps[ix].opflags & SystemBus::Done));
   }
 }
 
@@ -97,7 +97,7 @@ void MicroCodeRunner::fetchAbsoluteWord() {
 }
 
 word MicroCodeRunner::grabConstant(int step) {
-  switch (mc -> addressingMode) {
+  switch (mc -> addressingMode & Mask) {
     case DirectByte:
       if (step == 2) {
         m_constant = m_bus -> readDataBus();
@@ -130,7 +130,7 @@ SystemError MicroCodeRunner::executeNextStep(int step) {
     case MicroCode::OTHER:
       switch (s.opflags & SystemBus::Mask) {
         case SystemBus::Halt:
-          std::cerr << "Halting system" << std::endl;
+//        std::cerr << "Halting system" << std::endl;
           m_bus->stop();
           break;
         default:

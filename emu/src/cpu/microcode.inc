@@ -211,7 +211,7 @@ static MicroCode mc[256] = {
   {
     .opcode = MOV_C_B, .instruction = "mov c,b", .addressingMode = Immediate,
     .steps = {
-      { .action = MicroCode::XDATA, .src = GP_C, .target = GP_C, .opflags = SystemBus::Done },
+      { .action = MicroCode::XDATA, .src = GP_B, .target = GP_C, .opflags = SystemBus::Done },
     }
   },
 

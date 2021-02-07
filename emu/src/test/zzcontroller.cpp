@@ -21,6 +21,8 @@ protected:
   Controller *c = nullptr;
   Register *gp_a = new Register(0x0);
   Register *gp_b = new Register(0x1);
+  Register *gp_c = new Register(0x2);
+  Register *gp_d = new Register(0x3);
   AddressRegister *pc = new AddressRegister(PC, "PC");
   AddressRegister *tx = new AddressRegister(TX, "TX");
   AddressRegister *si = new AddressRegister(Si, "Si");
@@ -34,6 +36,8 @@ protected:
     system -> insert(c);
     system -> insert(gp_a);
     system -> insert(gp_b);
+    system -> insert(gp_c);
+    system -> insert(gp_d);
     system -> insert(pc);
     system -> insert(tx);
     system -> insert(si);
@@ -59,7 +63,7 @@ TEST_F(ControllerTest, testMovADirect) {
   ASSERT_EQ(pc -> getValue(), START_VECTOR);
 
   // mov a, #42 takes 4 cycles. hlt takes 3.
-  system -> cycles(7);
+  ASSERT_EQ(system -> run(true), 7);
   ASSERT_EQ(system -> bus.halt(), false);
   ASSERT_EQ(gp_a -> getValue(), 0x42);
 }
@@ -93,6 +97,102 @@ TEST_F(ControllerTest, testMovAAbsolute) {
   system -> cycles(11);
   ASSERT_EQ(system -> bus.halt(), false);
   ASSERT_EQ(gp_a -> getValue(), 0x42);
+}
+
+byte mov_x_a[] = {
+  MOV_A_CONST, 0x42,
+  MOV_B_A,
+  MOV_C_A,
+  MOV_D_A,
+  HLT,
+};
+
+TEST_F(ControllerTest, testMovAToOtherGPRs) {
+  mem -> initialize(ROM_START, 6, mov_x_a);
+  ASSERT_EQ((*mem)[START_VECTOR], MOV_A_CONST);
+
+  pc -> setValue(START_VECTOR);
+  ASSERT_EQ(pc -> getValue(), START_VECTOR);
+
+  // mov a, #42  4 cycles
+  // mov x, a    3 cycles x3
+  // hlt         3 cycles
+  // Total       16 cycles
+  ASSERT_EQ(system -> run(), 16);
+  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(gp_a -> getValue(), 0x42);
+  ASSERT_EQ(gp_b -> getValue(), 0x42);
+  ASSERT_EQ(gp_c -> getValue(), 0x42);
+  ASSERT_EQ(gp_d -> getValue(), 0x42);
+}
+
+byte mov_x_b[] = {
+  MOV_B_CONST, 0x42,
+  MOV_A_B,
+  MOV_C_B,
+  MOV_D_B,
+  HLT,
+};
+
+TEST_F(ControllerTest, testMovBToOtherGPRs) {
+  mem -> initialize(ROM_START, 6, mov_x_b);
+  ASSERT_EQ((*mem)[START_VECTOR], MOV_B_CONST);
+
+  pc -> setValue(START_VECTOR);
+  ASSERT_EQ(pc -> getValue(), START_VECTOR);
+
+  ASSERT_EQ(system -> run(), 16);
+  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(gp_b -> getValue(), 0x42);
+  ASSERT_EQ(gp_a -> getValue(), 0x42);
+  ASSERT_EQ(gp_c -> getValue(), 0x42);
+  ASSERT_EQ(gp_d -> getValue(), 0x42);
+}
+
+byte mov_x_c[] = {
+  MOV_C_CONST, 0x42,
+  MOV_A_C,
+  MOV_B_C,
+  MOV_D_C,
+  HLT,
+};
+
+TEST_F(ControllerTest, testMovCToOtherGPRs) {
+  mem -> initialize(ROM_START, 6, mov_x_c);
+  ASSERT_EQ((*mem)[START_VECTOR], MOV_C_CONST);
+
+  pc -> setValue(START_VECTOR);
+  ASSERT_EQ(pc -> getValue(), START_VECTOR);
+
+  ASSERT_EQ(system -> run(), 16);
+  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(gp_c -> getValue(), 0x42);
+  ASSERT_EQ(gp_a -> getValue(), 0x42);
+  ASSERT_EQ(gp_b -> getValue(), 0x42);
+  ASSERT_EQ(gp_d -> getValue(), 0x42);
+}
+
+byte mov_x_d[] = {
+  MOV_D_CONST, 0x42,
+  MOV_A_D,
+  MOV_B_D,
+  MOV_C_D,
+  HLT,
+};
+
+TEST_F(ControllerTest, testMovDToOtherGPRs) {
+  mem -> initialize(ROM_START, 6, mov_x_d);
+  ASSERT_EQ((*mem)[START_VECTOR], MOV_D_CONST);
+
+  pc -> setValue(START_VECTOR);
+  ASSERT_EQ(pc -> getValue(), START_VECTOR);
+
+  ASSERT_EQ(system -> run(), 16);
+  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(gp_d -> getValue(), 0x42);
+  ASSERT_EQ(gp_a -> getValue(), 0x42);
+  ASSERT_EQ(gp_b -> getValue(), 0x42);
+  ASSERT_EQ(gp_c -> getValue(), 0x42);
 }
 
 byte mov_si_direct[] = {

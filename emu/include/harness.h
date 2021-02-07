@@ -26,16 +26,20 @@ public:
     m_components[component -> id()] = component;
   }
 
-  int run() {
+  int run(bool debug = false) {
+    bool oldPrintStatus = printStatus;
+    printStatus = debug;
     status("Starting Condition", 0);
     int i = 0;
     do {
       auto err = cycle(i);
       if (err != NoError) {
-        return i;
+        goto exit;
       }
       i++;
     } while (bus.halt());
+  exit:
+    printStatus = oldPrintStatus;
     return i;
   }
 

@@ -91,6 +91,6 @@ target_link_libraries(emu_test ${GTEST_LDFLAGS})
 target_compile_options(emu_test PUBLIC ${GTEST_CFLAGS})
 
 include(CTest)
-add_test(first_and_only_test emu_test)
+add_test(emu_tests emu_test)
 
 

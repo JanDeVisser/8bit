@@ -46,7 +46,7 @@ add_executable(emu
         src/cpu/component.cpp include/component.h
         src/cpu/memory.cpp include/memory.h
         src/cpu/controller.cpp include/controller.h
-        src/gui/qled.cpp include/qled.h)
+        src/gui/qled.cpp src/gui/qled.h src/gui/cputhread.h src/gui/cputhread.cpp src/gui/componentview.h src/gui/componentview.cpp src/cpu/microcode.inc include/registers.h)
 
 target_link_libraries(
         emu
@@ -66,13 +66,14 @@ add_executable(emu_cmdline
         src/cpu/component.cpp include/component.h
         src/cpu/memory.cpp include/memory.h
         src/cpu/controller.cpp include/controller.h
-)
+        src/cpu/microcode.inc include/registers.h)
 
 add_executable(
     emu_test
     src/test/clock.cpp
     include/clock.h src/cpu/clock.cpp
     include/component.h src/cpu/component.cpp
+    include/controller.h src/cpu/controller.cpp
     include/systembus.h src/cpu/systembus.cpp
     include/harness.h
     include/addressregister.h src/cpu/addressregister.cpp
@@ -82,6 +83,8 @@ add_executable(
     src/test/register.cpp
     src/test/addressregister.cpp
     src/test/memory.cpp
+    src/test/zzcontroller.cpp
+    src/cpu/microcode.inc include/registers.h
 )
 
 target_link_libraries(emu_test ${GTEST_LDFLAGS})

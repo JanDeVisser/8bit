@@ -34,8 +34,10 @@ public:
   constexpr static int EV_CONTENTSCHANGED = 2;
 
   void erase();
+  void add(word, word, const byte *);
   void add(MemImage *);
   void initialize(MemImage *);
+  void initialize(word, word, const byte *);
 
   bool inRAM(word addr) const {
     return (addr >= ram_start) && (addr < (ram_start + ram_size));
@@ -55,7 +57,6 @@ public:
     } else if (inROM(addr)) {
       return rom[addr - rom_start];
     } else {
-      printf("%lx   XXXXXXXXXXXXXXXX\n", addr);
       throw std::exception(); // FIXME
     }
   }
@@ -73,6 +74,7 @@ public:
   SystemError status() override;
   SystemError onRisingClockEdge() override;
   SystemError onHighClock() override;
+
 };
 
 #endif //EMU_MEMORY_H

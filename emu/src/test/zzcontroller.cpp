@@ -25,7 +25,9 @@ protected:
   Register *gp_d = new Register(0x3);
   AddressRegister *pc = new AddressRegister(PC, "PC");
   AddressRegister *tx = new AddressRegister(TX, "TX");
+  AddressRegister *sp = new AddressRegister(SP, "SP");
   AddressRegister *si = new AddressRegister(Si, "Si");
+  AddressRegister *di = new AddressRegister(Di, "Di");
 
   void SetUp() override {
     mem = new Memory(RAM_START, RAM_SIZE, ROM_START, ROM_SIZE, nullptr);
@@ -40,7 +42,9 @@ protected:
     system -> insert(gp_d);
     system -> insert(pc);
     system -> insert(tx);
+    system -> insert(sp);
     system -> insert(si);
+    system -> insert(di);
 //    system -> printStatus = true;
   }
 
@@ -51,8 +55,8 @@ protected:
 };
 
 byte mov_a_direct[] = {
-  MOV_A_CONST, 0x42,
-  HLT
+  /* 8000 */ MOV_A_CONST, 0x42,
+  /* 8002 */ HLT
 };
 
 TEST_F(ControllerTest, testMovADirect) {
@@ -63,7 +67,7 @@ TEST_F(ControllerTest, testMovADirect) {
   ASSERT_EQ(pc -> getValue(), START_VECTOR);
 
   // mov a, #42 takes 4 cycles. hlt takes 3.
-  ASSERT_EQ(system -> run(true), 7);
+  ASSERT_EQ(system -> run(), 7);
   ASSERT_EQ(system -> bus.halt(), false);
   ASSERT_EQ(gp_a -> getValue(), 0x42);
 }
@@ -81,9 +85,9 @@ TEST_F(ControllerTest, testMovADirectUsingRun) {
 }
 
 byte mov_a_absolute[] = {
-  MOV_A_ADDR, 0x04, 0x80,
-  HLT,
-  0x42
+  /* 8000 */ MOV_A_ADDR, 0x04, 0x80,
+  /* 8003 */ HLT,
+  /* 8004 */ 0x42
 };
 
 TEST_F(ControllerTest, testMovAAbsolute) {
@@ -195,39 +199,206 @@ TEST_F(ControllerTest, testMovDToOtherGPRs) {
   ASSERT_EQ(gp_c -> getValue(), 0x42);
 }
 
-byte mov_si_direct[] = {
-  MOV_SI_CONST, 0x42, 0x37,
-  HLT,
+byte mov_x_absolute[] = {
+  /* 8000 */ MOV_A_ADDR, 0x0D, 0x80,
+  /* 8003 */ MOV_B_ADDR, 0x0D, 0x80,
+  /* 8006 */ MOV_C_ADDR, 0x0D, 0x80,
+  /* 8009 */ MOV_D_ADDR, 0x0D, 0x80,
+  /* 800C */ HLT,
+  /* 800D */ 0x42
 };
 
-TEST_F(ControllerTest, testMovSiDirect) {
-  mem -> initialize(ROM_START, 4, mov_si_direct);
+TEST_F(ControllerTest, testMovXAbsolute) {
+  mem -> initialize(ROM_START, 14, mov_x_absolute);
+  ASSERT_EQ((*mem)[START_VECTOR], MOV_A_ADDR);
+
+  pc -> setValue(START_VECTOR);
+  ASSERT_EQ(pc -> getValue(), START_VECTOR);
+
+  // mov x, (800D) takes 8 cycles x4
+  // hlt takes 3.
+  ASSERT_EQ(system -> run(),35);
+  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(gp_a -> getValue(), 0x42);
+  ASSERT_EQ(gp_b -> getValue(), 0x42);
+  ASSERT_EQ(gp_c -> getValue(), 0x42);
+  ASSERT_EQ(gp_d -> getValue(), 0x42);
+}
+
+byte mov_addr_regs_direct[] = {
+  /* 8000 */ MOV_SI_CONST, 0x42, 0x37,
+  /* 8003 */ MOV_DI_CONST, 0x42, 0x37,
+  /* 8006 */ MOV_SP_CONST, 0x42, 0x37,
+  /* 8009 */ HLT,
+};
+
+TEST_F(ControllerTest, testMovAddrRegsDirect) {
+  mem -> initialize(ROM_START, 10, mov_addr_regs_direct);
   ASSERT_EQ((*mem)[START_VECTOR], MOV_SI_CONST);
 
   pc -> setValue(START_VECTOR);
   ASSERT_EQ(pc -> getValue(), START_VECTOR);
 
-  // mov si, #3742 takes 6 cycles. hlt takes 3.
-  system -> cycles(9);
+  // mov si, #3742 takes 6 cycles x3.
+  // hlt takes 3.
+  ASSERT_EQ(system -> run(), 21);
   ASSERT_EQ(system -> bus.halt(), false);
   ASSERT_EQ(si -> getValue(), 0x3742);
+  ASSERT_EQ(di -> getValue(), 0x3742);
+  ASSERT_EQ(sp -> getValue(), 0x3742);
 }
 
-byte mov_si_absolute[] = {
-  MOV_SI_ADDR, 0x04, 0x80,
-  HLT,
-  0x42, 0x37
+byte mov_addr_regs_absolute[] = {
+  /* 8000 */ MOV_SI_ADDR, 0x0A, 0x80,
+  /* 8003 */ MOV_DI_ADDR, 0x0A, 0x80,
+  /* 8006 */ MOV_SP_ADDR, 0x0A, 0x80,
+  /* 8009 */ HLT,
+  /* 800A */ 0x42, 0x37
 };
 
-TEST_F(ControllerTest, testMovSiAbsolute) {
-  mem -> initialize(ROM_START, 6, mov_si_absolute);
+TEST_F(ControllerTest, testMovAddrRegsAbsolute) {
+  mem -> initialize(ROM_START, 12, mov_addr_regs_absolute);
   ASSERT_EQ((*mem)[START_VECTOR], MOV_SI_ADDR);
 
   pc -> setValue(START_VECTOR);
   ASSERT_EQ(pc -> getValue(), START_VECTOR);
 
-  // mov si, (8004) takes 10 cycles. hlt takes 3.
-  system -> cycles(13);
+  // mov si, (8004) takes 10 cycles x3
+  // hlt takes 3.
+  ASSERT_EQ(system -> run(), 33);
   ASSERT_EQ(system -> bus.halt(), false);
   ASSERT_EQ(si -> getValue(), 0x3742);
+  ASSERT_EQ(di -> getValue(), 0x3742);
+  ASSERT_EQ(sp -> getValue(), 0x3742);
 }
+
+byte mov_addr_regs_from_other_regs[] = {
+  /* 8000 */ MOV_C_CONST, 0x42,
+  /* 8002 */ MOV_D_CONST, 0x37,
+  /* 8004 */ MOV_SI_CD,
+  /* 8005 */ MOV_DI_CD,
+  /* 8006 */ MOV_SP_SI,
+  /* 8007 */ HLT,
+};
+
+TEST_F(ControllerTest, testMovAddrRegsFromOtherRegs) {
+  mem -> initialize(ROM_START, 8, mov_addr_regs_from_other_regs);
+  ASSERT_EQ((*mem)[START_VECTOR], MOV_C_CONST);
+
+  pc -> setValue(START_VECTOR);
+  ASSERT_EQ(pc -> getValue(), START_VECTOR);
+
+  // mov c, #xx     4 cycles x2
+  // mov xx, cd     4 cycles x2
+  // mov sp, si     3 cycles
+  // hlt            3 cycles
+  // total          22
+  ASSERT_EQ(system -> run(), 22);
+  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(si -> getValue(), 0x3742);
+  ASSERT_EQ(di -> getValue(), 0x3742);
+  ASSERT_EQ(sp -> getValue(), 0x3742);
+}
+
+byte mov_gp_regs_from_si[] = {
+  /* 8000 */ MOV_SI_CONST, 0x08, 0x80,
+  /* 8003 */ MOV_A_SI,
+  /* 8004 */ MOV_B_SI,
+  /* 8005 */ MOV_C_SI,
+  /* 8006 */ MOV_D_SI,
+  /* 8007 */ HLT,
+  /* 8008 */ 0x42,
+  /* 8009 */ 0x43,
+  /* 800A */ 0x44,
+  /* 800B */ 0x45
+};
+
+TEST_F(ControllerTest, testMovGPRegsFromSI) {
+  mem -> initialize(ROM_START, 12, mov_gp_regs_from_si);
+  ASSERT_EQ((*mem)[START_VECTOR], MOV_SI_CONST);
+
+  pc -> setValue(START_VECTOR);
+  ASSERT_EQ(pc -> getValue(), START_VECTOR);
+
+  // mov si, #xxxx  6 cycles
+  // mov xx, (si)   4 cycles x4
+  // hlt            3 cycles
+  // total          17
+  ASSERT_EQ(system -> run(), 25);
+  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(si -> getValue(), 0x800C);
+  ASSERT_EQ(gp_a -> getValue(), 0x42);
+  ASSERT_EQ(gp_b -> getValue(), 0x43);
+  ASSERT_EQ(gp_c -> getValue(), 0x44);
+  ASSERT_EQ(gp_d -> getValue(), 0x45);
+}
+
+byte mov_gp_regs_from_di[] = {
+  /* 8000 */ MOV_DI_CONST, 0x08, 0x80,
+  /* 8003 */ MOV_A_DI,
+  /* 8004 */ MOV_B_DI,
+  /* 8005 */ MOV_C_DI,
+  /* 8006 */ MOV_D_DI,
+  /* 8007 */ HLT,
+  /* 8008 */ 0x42,
+  /* 8009 */ 0x43,
+  /* 800A */ 0x44,
+  /* 800B */ 0x45
+};
+
+TEST_F(ControllerTest, testMovGPRegsFromDI) {
+  mem -> initialize(ROM_START, 12, mov_gp_regs_from_di);
+  ASSERT_EQ((*mem)[START_VECTOR], MOV_DI_CONST);
+
+  pc -> setValue(START_VECTOR);
+  ASSERT_EQ(pc -> getValue(), START_VECTOR);
+
+  // mov di, #xxxx  6 cycles
+  // mov xx, (si)   4 cycles x4
+  // hlt            3 cycles
+  // total          17
+  ASSERT_EQ(system -> run(), 25);
+  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(di -> getValue(), 0x800C);
+  ASSERT_EQ(gp_a -> getValue(), 0x42);
+  ASSERT_EQ(gp_b -> getValue(), 0x43);
+  ASSERT_EQ(gp_c -> getValue(), 0x44);
+  ASSERT_EQ(gp_d -> getValue(), 0x45);
+}
+
+byte mov_di_from_si[] = {
+  /* 8000 */ MOV_SI_CONST, 0x0B, 0x80,
+  /* 8003 */ MOV_DI_CONST, 0x00, 0x20,
+  /* 8006 */ MOV_DI_SI,
+  /* 8007 */ MOV_DI_SI,
+  /* 8008 */ MOV_DI_SI,
+  /* 8009 */ MOV_DI_SI,
+  /* 800A */ HLT,
+  /* 800B */ 0x42,
+  /* 800C */ 0x43,
+  /* 800D */ 0x44,
+  /* 800E */ 0x45
+};
+
+TEST_F(ControllerTest, testMovDIFromSI) {
+  mem -> initialize(ROM_START, 16, mov_di_from_si);
+  ASSERT_EQ((*mem)[START_VECTOR], MOV_SI_CONST);
+  ASSERT_EQ((*mem)[0x800B], 0x42);
+
+  pc -> setValue(START_VECTOR);
+  ASSERT_EQ(pc -> getValue(), START_VECTOR);
+
+  // mov si, #xxxx  6 cycles x2
+  // mov (di), (si) 6 cycles x4
+  // hlt            3 cycles
+  // total          39
+  ASSERT_EQ(system -> run(), 39);
+  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(si -> getValue(), 0x800F);
+  ASSERT_EQ(di -> getValue(), 0x2004);
+  ASSERT_EQ((*mem)[0x2000], 0x42);
+  ASSERT_EQ((*mem)[0x2001], 0x43);
+  ASSERT_EQ((*mem)[0x2002], 0x44);
+  ASSERT_EQ((*mem)[0x2003], 0x45);
+}
+

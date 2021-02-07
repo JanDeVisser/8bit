@@ -26,7 +26,7 @@ public:
     m_components[component -> id()] = component;
   }
 
-  int run(bool debug = false) {
+  int run(bool debug = false, int cycles = -1) {
     bool oldPrintStatus = printStatus;
     printStatus = debug;
     status("Starting Condition", 0);
@@ -37,7 +37,7 @@ public:
         goto exit;
       }
       i++;
-    } while (bus.halt());
+    } while (bus.halt() && ((cycles == -1) || (i < cycles)));
   exit:
     printStatus = oldPrintStatus;
     return i;

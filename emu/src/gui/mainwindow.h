@@ -6,48 +6,30 @@
 #include <QPushButton>
 #include <QThread>
 
+#include "cputhread.h"
 #include "backplane.h"
-
-QT_BEGIN_NAMESPACE
-namespace Ui { class MainWindow; }
-QT_END_NAMESPACE
-
-class CPUThread : public QThread {
-Q_OBJECT
-
-public:
-  CPUThread(BackPlane *, QObject * = nullptr);
-  ~CPUThread() override = default;
-
-signals:
-  void executionEnded(void);
-
-protected:
-  void run() override;
-
-private:
-  BackPlane *system;
-};
 
 class MainWindow : public QMainWindow
 {
-    Q_OBJECT
+  Q_OBJECT
 
 private slots:
-    void runClicked();
-    void enableRun();
+  void runClicked();
+  void cycleClicked();
+  void instrClicked();
+  void enableButtons();
+  void disableButtons();
 
 public:
-    explicit MainWindow(QWidget *parent = nullptr);
-    ~MainWindow() override;
+  explicit MainWindow(QWidget *parent = nullptr);
 
 private:
   CPUThread    *thread = nullptr;
-  BackPlane    *system;
   QPushButton  *run;
+  QPushButton  *cycle;
+  QPushButton  *instr;
 
 protected:
   void       createMenu();
-
 };
 #endif // MAINWINDOW_H

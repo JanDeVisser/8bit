@@ -1,5 +1,22 @@
 #include "systembus.h"
 
+SystemError SystemBus::reset() {
+  _xdata = true;
+  _xaddr = true;
+  get = 0;
+  put = 0;
+  op = 0;
+  data_bus = 0;
+  addr_bus = 0;
+  _sus = true;
+  _sack = true;
+  rst = false;
+  _io = true;
+  _halt = true;
+  sendEvent(EV_VALUECHANGED);
+  return NoError;
+}
+
 byte SystemBus::readDataBus() const {
   return data_bus;
 }

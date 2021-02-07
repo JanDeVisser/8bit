@@ -5,7 +5,7 @@
 #ifndef EMU_CONTROLLER_H
 #define EMU_CONTROLLER_H
 
-#include <map>
+#include <vector>
 #include "register.h"
 #include "systembus.h"
 
@@ -14,6 +14,15 @@ constexpr static byte OP_DONE = 0xF0;
 constexpr static byte OP_MASK = 0x0F;
 constexpr static byte OP_HALT = 0x0F;
 
+enum AddressingMode {
+  Immediate    = 0x00,
+  DirectByte   = 0x11,
+  DirectWord   = 0x21,
+  AbsoluteByte = 0x12,
+  AbsoluteWord = 0x22,
+  Mask         = 0x7F,
+  Done         = 0x80
+};
 
 
 struct MicroCode {
@@ -24,6 +33,12 @@ struct MicroCode {
     OTHER = 0x08
   };
 
+  enum Op {
+    None  = 0x00,
+    And   = 0x01,
+    Nand  = 0x02,
+  };
+
   struct MicroCodeStep {
     Action action;
     byte   src;
@@ -31,31 +46,75 @@ struct MicroCode {
     byte   opflags;
   };
 
-  byte           opcode;
-  const char    *instruction;
-  MicroCodeStep  steps[16];
+  byte            opcode;
+  const char     *instruction;
+  AddressingMode  addressingMode;
+  byte            target;
+  byte            condition;
+  Op              condition_op;
+  MicroCodeStep   steps[16];
 };
 
+class MicroCodeRunner;
 
 class Controller : public Register {
-private:
-  byte       step = 0;
-  MicroCode *microCode;
-//  std::map<byte, std::vector<MicroCode>> microcode;
+public:
+  enum RunMode {
+    Continuous = 0,
+    BreakAtInstruction = 1,
+    BreakAtClock = 2,
+  };
 
-  const MicroCode::MicroCodeStep & findMicroCodeStep();
+private:
+  byte            step = 0;
+  const MicroCode *microCode;
+  MicroCodeRunner *m_runner = nullptr;
+  RunMode          m_runMode = Continuous;
 
 public:
-  explicit    Controller(MicroCode *);
+  explicit    Controller(const MicroCode *);
   std::string name() const override { return "IR"; }
   std::string instruction() const;
+  word        constant() const;
   int         getStep() const { return step; }
+  RunMode     runMode() const { return m_runMode; }
+  void        setRunMode(RunMode runMode);
 
   SystemError status() override;
   SystemError reset() override;
+  SystemError onHighClock() override;
   SystemError onLowClock() override;
 
   constexpr static int EV_STEPCHANGED = 0x02;
+
 };
+
+class MicroCodeRunner {
+private:
+  SystemBus                             *m_bus;
+  const MicroCode                       *mc;
+  std::vector<MicroCode::MicroCodeStep>  steps;
+  bool                                   valid = true;
+  word                                   m_constant = 0;
+
+  void evaluateCondition();
+  void fetchSteps();
+  void fetchDirectByte();
+  void fetchDirectWord();
+  void fetchAbsoluteByte();
+  void fetchAbsoluteWord();
+
+public:
+  MicroCodeRunner(SystemBus *, const MicroCode *);
+  SystemError executeNextStep(int step);
+  bool        hasStep(int step);
+  word        grabConstant(int step);
+  std::string instruction() const;
+  word        constant() const;
+
+};
+
+
+
 
 #endif //EMU_CONTROLLER_H

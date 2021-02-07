@@ -3,20 +3,8 @@
 
 #include <vector>
 #include "clock.h"
+#include "controller.h"
 #include "systembus.h"
-
-constexpr static int GP_A = 0;
-constexpr static int GP_B = 1;
-constexpr static int GP_C = 2;
-constexpr static int GP_D = 3;
-constexpr static int IR = 6;
-constexpr static int MEM = 7;
-constexpr static int PC = 8;
-constexpr static int SP = 9;
-constexpr static int Si = 10;
-constexpr static int Di = 11;
-constexpr static int TX = 12;
-constexpr static int MEMADDR = 15;
 
 
 class BackPlane : public Component {
@@ -26,7 +14,7 @@ private:
   SystemBus                         *systemBus;
   SystemError                        error = NoError;
 
-  SystemError                        reportError();
+  SystemError     reportError();
 
 protected:
 
@@ -35,8 +23,11 @@ public:
                           ~BackPlane() override = default;
   void                    run();
   void                    stop() { clock.stop(); }
+  Controller::RunMode     runMode() const;
+  void                    setRunMode(Controller::RunMode runMode) const;
+  Controller *            controller() const;
 
-  void                    add(ConnectedComponent *);
+  void                    insert(ConnectedComponent *);
   ConnectedComponent *    componentByID(int id) const;
   SystemBus *             bus() const { return systemBus; }
 
@@ -46,6 +37,8 @@ public:
   SystemError             onHighClock() override;
   SystemError             onFallingClockEdge() override;
   SystemError             onLowClock() override;
+
+  void                    defaultSetup();
 };
 
 #endif //EMU_BACKPLANE_H

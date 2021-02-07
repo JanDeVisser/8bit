@@ -13,6 +13,18 @@ unsigned long Clock::tick() const {
   return (unsigned long) round(1000000.0 / (2.0 * khz));
 }
 
+ClockListener * Clock::setListener(ClockListener *listener) {
+  ClockListener *old = m_listener;
+  m_listener = listener;
+  return old;
+}
+
+void Clock::sendEvent(ClockListener::ClockEvent event) {
+  if (m_listener) {
+    m_listener->clockEvent(event);
+  }
+}
+
 void Clock::sleep() const {
   auto start = std::chrono::high_resolution_clock::now();
   struct timespec req = {0};
@@ -27,7 +39,6 @@ SystemError Clock::start() {
   cycle = Low;
   SystemError err = NoError;
   for (state = Running; err == NoError && state == Running; ) {
-    sleep();
     if ((err = owner -> onRisingClockEdge()) != NoError) {
       break;
     };
@@ -38,8 +49,12 @@ SystemError Clock::start() {
     if ((err = owner -> onFallingClockEdge()) != NoError) {
       break;
     };
-    err = owner -> onLowClock();
+    if ((err = owner -> onLowClock()) != NoError) {
+      break;
+    }
+    sleep();
   }
+  sendEvent((err != NoError) ? ClockListener::Error : ClockListener::Stopped);
   return err;
 }
 

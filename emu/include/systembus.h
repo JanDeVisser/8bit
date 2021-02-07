@@ -18,15 +18,23 @@ private:
   bool              rst = false;
   bool              _io = true;
 
+  byte              m_flags;
+
 public:
+  enum ProcessorFlags {
+    Z = 0x01,
+    C = 0x02,
+    V = 0x04,
+  };
+
   enum OperatorFlags {
-    OP_NONE = 0x00,
-    OP_INC = 0x01,
-    OP_DEC = 0x02,
-    OP_MSB = 0x08,
-    OP_MASK = 0x0F,
-    OP_HALT = 0x0F,
-    OP_DONE = 0x10,
+    None      = 0x00,
+    Inc       = 0x01,
+    Dec       = 0x02,
+    MSB       = 0x08,
+    Mask      = 0x0F,
+    Halt      = 0x0F,
+    Done      = 0x10,
   };
                   ~SystemBus() override = default;
   byte             readDataBus() const;
@@ -39,11 +47,13 @@ public:
   byte             putID() const { return put; }
   byte             getID() const { return get; }
   byte             opflags() const { return op; }
+  byte             flags() const { return m_flags; }
 
   void             initialize(bool, bool, byte, byte, byte, byte = 0x00, byte = 0x00);
   void             xdata(int, int, int);
   void             xaddr(int, int, int);
   void             stop();
+  SystemError      reset() override;
   SystemError      status() override;
 };
 

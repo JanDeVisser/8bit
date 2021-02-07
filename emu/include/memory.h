@@ -5,6 +5,8 @@
 #ifndef EMU_MEMORY_H
 #define EMU_MEMORY_H
 
+#include <vector>
+
 #include "addressregister.h"
 #include "systembus.h"
 
@@ -16,12 +18,12 @@ struct MemImage {
 
 class Memory : public AddressRegister {
 private:
-  word  ram_start;
-  word  ram_size;
-  word  rom_start;
-  word  rom_size;
-  byte *ram;
-  byte *rom;
+  word              ram_start;
+  word              ram_size;
+  word              rom_start;
+  word              rom_size;
+  std::vector<byte> ram;
+  std::vector<byte> rom;
 
 public:
   Memory(word, word, word, word, MemImage * = nullptr);
@@ -31,7 +33,9 @@ public:
   constexpr static byte ADDR_ID = 0xF;
   constexpr static int EV_CONTENTSCHANGED = 2;
 
+  void erase();
   void add(MemImage *);
+  void initialize(MemImage *);
 
   bool inRAM(word addr) const {
     return (addr >= ram_start) && (addr < (ram_start + ram_size));
@@ -51,6 +55,7 @@ public:
     } else if (inROM(addr)) {
       return rom[addr - rom_start];
     } else {
+      printf("%lx   XXXXXXXXXXXXXXXX\n", addr);
       throw std::exception(); // FIXME
     }
   }

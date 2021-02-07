@@ -7,6 +7,16 @@
 
 #include "component.h"
 
+class ClockListener {
+public:
+  enum ClockEvent {
+    Started,
+    Stopped,
+    Error,
+  };
+  virtual void clockEvent(ClockEvent event) = 0;
+};
+
 class Clock {
 public:
   enum Cycle { High, Low };
@@ -17,7 +27,9 @@ private:
   Component       *owner;
   Cycle            cycle = Low;
   State            state = Stopped;
+  ClockListener   *m_listener = nullptr;
 
+  void             sendEvent(ClockListener::ClockEvent);
   void             sleep() const;
 
 
@@ -28,6 +40,8 @@ public:
   unsigned long  tick() const;
   SystemError    start();
   void           stop();
+
+  ClockListener * setListener(ClockListener *);
 };
 
 #endif //EMU_CLOCK_H

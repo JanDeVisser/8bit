@@ -65,11 +65,14 @@ void MicroCodeRunner::fetchDirectByte() {
 }
 
 void MicroCodeRunner::fetchDirectWord() {
-  byte target = (valid) ? mc -> target : TX;
+  byte target = (valid && mc -> target != PC) ? mc -> target : TX;
   steps.push_back({ MicroCode::Action::XADDR, PC, MEMADDR, SystemBus::Inc });
   steps.push_back({ MicroCode::Action::XDATA, MEM, target, SystemBus::None });
   steps.push_back({ MicroCode::Action::XADDR, PC, MEMADDR, SystemBus::Inc });
   steps.push_back({ MicroCode::Action::XDATA, MEM, target, SystemBus::MSB });
+  if (valid && mc -> target == PC) {
+    steps.push_back({ MicroCode::Action::XADDR, TX, PC, SystemBus::None });
+  }
 }
 
 void MicroCodeRunner::fetchAbsoluteByte() {

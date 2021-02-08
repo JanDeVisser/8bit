@@ -545,3 +545,29 @@ TEST_F(ControllerTest, testPushPopAddrRegs) {
   ASSERT_EQ((*mem)[0x2003], 0x56);
 }
 
+const byte jmp_basic[] = {
+  /* 8000 */ JMP, 0x06, 0x80,
+  /* 8003 */ MOV_A_CONST, 0x37,
+  /* 8005 */ HLT,
+  /* 8006 */ MOV_A_CONST, 0x42,
+  /* 8008 */ HLT,
+};
+
+TEST_F(ControllerTest, testJmp) {
+  mem -> initialize(ROM_START, 9, jmp_basic);
+  ASSERT_EQ((*mem)[START_VECTOR], JMP);
+
+  pc -> setValue(START_VECTOR);
+  ASSERT_EQ(pc -> getValue(), START_VECTOR);
+
+  // jmp            7 cycles
+  // mov a, #xx     4 cycles
+  // hlt            3 cycles
+  // total         14
+  auto cycles = system -> run();
+  ASSERT_EQ(system -> error, NoError);
+  ASSERT_EQ(cycles, 14);
+  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(gp_a -> getValue(), 0x42);
+}
+

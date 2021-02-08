@@ -4,3 +4,5 @@ gerber
 *.zip
 *.sch-bak
 *.kicad_pcb-bak
+*.bck
+

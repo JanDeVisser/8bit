@@ -573,9 +573,58 @@ static MicroCode mc[256] = {
     }
   },
 
+  {
+    .opcode = MOV_ADDR_SI, .instruction = "mov (%04x), si",  .addressingMode = DirectWord, .target = TX, // 0x41
+    .steps = {
+      { .action = MicroCode::XADDR, .src = TX, .target = MEMADDR, .opflags = SystemBus::Inc },
+      { .action = MicroCode::XDATA, .src = Si, .target = MEM, .opflags = SystemBus::None },
+      { .action = MicroCode::XADDR, .src = TX, .target = MEMADDR, .opflags = SystemBus::None },
+      { .action = MicroCode::XDATA, .src = Si, .target = MEM, .opflags = SystemBus::MSB | SystemBus::Done },
+    }
+  },
 
-  { /* 65 */ }, { /* 66 */ }, { /* 67 */ }, { /* 68 */ },
-  { /* 69 */ }, { /* 70 */ }, { /* 71 */ }, { /* 72 */ }, { /* 73 */ }, { /* 74 */ }, { /* 75 */ }, { /* 76 */ },
+  {
+    .opcode = MOV_ADDR_DI, .instruction = "mov (%04x), di",  .addressingMode = DirectWord, .target = TX, // 0x42
+    .steps = {
+      { .action = MicroCode::XADDR, .src = TX, .target = MEMADDR, .opflags = SystemBus::Inc },
+      { .action = MicroCode::XDATA, .src = Di, .target = MEM, .opflags = SystemBus::None },
+      { .action = MicroCode::XADDR, .src = TX, .target = MEMADDR, .opflags = SystemBus::None },
+      { .action = MicroCode::XDATA, .src = Di, .target = MEM, .opflags = SystemBus::MSB | SystemBus::Done },
+    }
+  },
+
+  {
+    .opcode = MOV_ADDR_CD, .instruction = "mov (%04x), cd",  .addressingMode = DirectWord, .target = TX, // 0x43
+    .steps = {
+      { .action = MicroCode::XADDR, .src = TX, .target = MEMADDR, .opflags = SystemBus::Inc },
+      { .action = MicroCode::XDATA, .src = GP_C, .target = MEM, .opflags = SystemBus::None },
+      { .action = MicroCode::XADDR, .src = TX, .target = MEMADDR, .opflags = SystemBus::None },
+      { .action = MicroCode::XDATA, .src = GP_D, .target = MEM, .opflags = SystemBus::MSB | SystemBus::Done },
+    }
+  },
+
+  {
+    .opcode = MOV_SI_CD_, .instruction = "mov (si), cd",  .addressingMode = Immediate, // 0x44
+    .steps = {
+      { .action = MicroCode::XADDR, .src = Si, .target = MEMADDR, .opflags = SystemBus::Inc },
+      { .action = MicroCode::XDATA, .src = GP_C, .target = MEM, .opflags = SystemBus::None },
+      { .action = MicroCode::XADDR, .src = Si, .target = MEMADDR, .opflags = SystemBus::Inc },
+      { .action = MicroCode::XDATA, .src = GP_D, .target = MEM, .opflags = SystemBus::MSB | SystemBus::Done },
+    }
+  },
+
+  {
+    .opcode = MOV_DI_CD_, .instruction = "mov (di), cd",  .addressingMode = Immediate, // 0x45
+    .steps = {
+      { .action = MicroCode::XADDR, .src = Di, .target = MEMADDR, .opflags = SystemBus::Inc },
+      { .action = MicroCode::XDATA, .src = GP_C, .target = MEM, .opflags = SystemBus::None },
+      { .action = MicroCode::XADDR, .src = Di, .target = MEMADDR, .opflags = SystemBus::Inc },
+      { .action = MicroCode::XDATA, .src = GP_D, .target = MEM, .opflags = SystemBus::MSB | SystemBus::Done },
+    }
+  },
+
+
+  { /* 70 */ }, { /* 71 */ }, { /* 72 */ }, { /* 73 */ }, { /* 74 */ }, { /* 75 */ }, { /* 76 */ },
   { /* 77 */ }, { /* 78 */ }, { /* 79 */ }, { /* 80 */ }, { /* 81 */ }, { /* 82 */ }, { /* 83 */ }, { /* 84 */ },
   { /* 85 */ }, { /* 86 */ }, { /* 87 */ }, { /* 88 */ }, { /* 89 */ }, { /* 90 */ }, { /* 91 */ }, { /* 92 */ },
   { /* 93 */ }, { /* 94 */ }, { /* 95 */ }, { /* 96 */ }, { /* 97 */ }, { /* 98 */ }, { /* 99 */ }, { /* 100 */ },

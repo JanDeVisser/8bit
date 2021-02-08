@@ -834,3 +834,70 @@ TEST_F(ControllerTest, testMovGPRegToDiIndirect) {
   ASSERT_EQ((*mem)[0x2003], 0x45);
 }
 
+const byte addr_reg_to_absolute_mem[] = {
+  MOV_SI_CONST, 0x22, 0x11,
+  MOV_DI_CONST, 0x44, 0x33,
+  MOV_C_CONST, 0x66,
+  MOV_D_CONST, 0x55,
+  MOV_ADDR_SI, 0x00, 0x20,
+  MOV_ADDR_DI, 0x02, 0x20,
+  MOV_ADDR_CD, 0x04, 0x20,
+  HLT,
+};
+
+TEST_F(ControllerTest, testMovAddrRegToMem) {
+  mem -> initialize(ROM_START, 21, addr_reg_to_absolute_mem);
+  ASSERT_EQ((*mem)[START_VECTOR], MOV_SI_CONST);
+
+  pc -> setValue(START_VECTOR);
+  ASSERT_EQ(pc -> getValue(), START_VECTOR);
+
+  // mov si, #xxxx   6 cycles x2  12
+  // mov c, #xx      4        x2   8
+  // mov (xxxx), si 10        x3  30
+  // hlt             3             3
+  // total                        53
+  auto cycles = system -> run();
+  ASSERT_EQ(system -> error, NoError);
+  ASSERT_EQ(cycles, 53);
+  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ((*mem)[0x2000], 0x22);
+  ASSERT_EQ((*mem)[0x2001], 0x11);
+  ASSERT_EQ((*mem)[0x2002], 0x44);
+  ASSERT_EQ((*mem)[0x2003], 0x33);
+  ASSERT_EQ((*mem)[0x2004], 0x66);
+  ASSERT_EQ((*mem)[0x2005], 0x55);
+}
+
+const byte cd_to_sidi_indirect[] = {
+  MOV_SI_CONST, 0x00, 0x20,
+  MOV_DI_CONST, 0x10, 0x20,
+  MOV_C_CONST, 0x42,
+  MOV_D_CONST, 0x37,
+  MOV_SI_CD_,
+  MOV_DI_CD_,
+  HLT,
+};
+
+TEST_F(ControllerTest, testMovCDRegToMemViaSiDiIndirect) {
+  mem -> initialize(ROM_START, 21, cd_to_sidi_indirect);
+  ASSERT_EQ((*mem)[START_VECTOR], MOV_SI_CONST);
+
+  pc -> setValue(START_VECTOR);
+  ASSERT_EQ(pc -> getValue(), START_VECTOR);
+
+  // mov si, #xxxx   6 cycles x2  12
+  // mov c, #xx      4        x2   8
+  // mov (si), cd    6        x2  12
+  // hlt             3             3
+  // total                        35
+  auto cycles = system -> run();
+  ASSERT_EQ(system -> error, NoError);
+  ASSERT_EQ(cycles, 35);
+  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ((*mem)[0x2000], 0x42);
+  ASSERT_EQ((*mem)[0x2001], 0x37);
+  ASSERT_EQ((*mem)[0x2010], 0x42);
+  ASSERT_EQ((*mem)[0x2011], 0x37);
+}
+

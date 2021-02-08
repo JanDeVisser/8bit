@@ -571,3 +571,157 @@ TEST_F(ControllerTest, testJmp) {
   ASSERT_EQ(gp_a -> getValue(), 0x42);
 }
 
+const byte jc[] = {
+  /* 8000 */ JC, 0x06, 0x80,
+  /* 8003 */ MOV_A_CONST, 0x37,
+  /* 8005 */ HLT,
+  /* 8006 */ MOV_A_CONST, 0x42,
+  /* 8008 */ HLT,
+};
+
+TEST_F(ControllerTest, testJcCarrySet) {
+  system -> bus.setFlag(SystemBus::ProcessorFlags::C);
+  mem -> initialize(ROM_START, 9, jc);
+  ASSERT_EQ((*mem)[START_VECTOR], JC);
+
+  pc -> setValue(START_VECTOR);
+  ASSERT_EQ(pc -> getValue(), START_VECTOR);
+
+  // jc             7 cycles
+  // mov a, #xx     4 cycles
+  // hlt            3 cycles
+  // total         14
+  auto cycles = system -> run();
+  ASSERT_EQ(system -> error, NoError);
+  ASSERT_EQ(cycles, 14);
+  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(gp_a -> getValue(), 0x42);
+}
+
+TEST_F(ControllerTest, testJcCarryNotSet) {
+  system -> bus.clearFlag(SystemBus::ProcessorFlags::C);
+  mem -> initialize(ROM_START, 9, jc);
+  ASSERT_EQ((*mem)[START_VECTOR], JC);
+
+  pc -> setValue(START_VECTOR);
+  ASSERT_EQ(pc -> getValue(), START_VECTOR);
+
+  // jc             6 cycles
+  // mov a, #xx     4 cycles
+  // hlt            3 cycles
+  // total         13
+  auto cycles = system -> run();
+  ASSERT_EQ(system -> error, NoError);
+  ASSERT_EQ(cycles, 13);
+  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(gp_a -> getValue(), 0x37);
+}
+
+TEST_F(ControllerTest, testBusFlagManip) {
+  system -> bus.clearFlags();
+  system -> bus.setFlag(SystemBus::ProcessorFlags::C);
+  system -> bus.setFlag(SystemBus::ProcessorFlags::Z);
+
+  ASSERT_TRUE(system -> bus.isSet(SystemBus::ProcessorFlags::C));
+  ASSERT_TRUE(system -> bus.isSet(SystemBus::ProcessorFlags::Z));
+  ASSERT_FALSE(system -> bus.isSet(SystemBus::ProcessorFlags::V));
+
+  system -> bus.clearFlag(SystemBus::ProcessorFlags::C);
+
+  ASSERT_FALSE(system -> bus.isSet(SystemBus::ProcessorFlags::C));
+  ASSERT_TRUE(system -> bus.isSet(SystemBus::ProcessorFlags::Z));
+  ASSERT_FALSE(system -> bus.isSet(SystemBus::ProcessorFlags::V));
+}
+
+const byte jnz[] = {
+  /* 8000 */ JNZ, 0x06, 0x80,
+  /* 8003 */ MOV_A_CONST, 0x37,
+  /* 8005 */ HLT,
+  /* 8006 */ MOV_A_CONST, 0x42,
+  /* 8008 */ HLT,
+};
+
+TEST_F(ControllerTest, testJnzZeroNotSet) {
+  system -> bus.clearFlag(SystemBus::ProcessorFlags::Z);
+  mem -> initialize(ROM_START, 9, jnz);
+  ASSERT_EQ((*mem)[START_VECTOR], JNZ);
+
+  pc -> setValue(START_VECTOR);
+  ASSERT_EQ(pc -> getValue(), START_VECTOR);
+
+  // jnz            7 cycles
+  // mov a, #xx     4 cycles
+  // hlt            3 cycles
+  // total         14
+  auto cycles = system -> run();
+  ASSERT_EQ(system -> error, NoError);
+  ASSERT_EQ(cycles, 14);
+  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(gp_a -> getValue(), 0x42);
+}
+
+TEST_F(ControllerTest, testJnzZeroSet) {
+  system -> bus.setFlag(SystemBus::ProcessorFlags::Z);
+  mem -> initialize(ROM_START, 9, jnz);
+  ASSERT_EQ((*mem)[START_VECTOR], JNZ);
+
+  pc -> setValue(START_VECTOR);
+  ASSERT_EQ(pc -> getValue(), START_VECTOR);
+
+  // jc             6 cycles
+  // mov a, #xx     4 cycles
+  // hlt            3 cycles
+  // total         13
+  auto cycles = system -> run();
+  ASSERT_EQ(system -> error, NoError);
+  ASSERT_EQ(cycles, 13);
+  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(gp_a -> getValue(), 0x37);
+}
+
+const byte jv[] = {
+  /* 8000 */ JV, 0x06, 0x80,
+  /* 8003 */ MOV_A_CONST, 0x37,
+  /* 8005 */ HLT,
+  /* 8006 */ MOV_A_CONST, 0x42,
+  /* 8008 */ HLT,
+};
+
+TEST_F(ControllerTest, testJvCarrySet) {
+  system -> bus.setFlag(SystemBus::ProcessorFlags::V);
+  mem -> initialize(ROM_START, 9, jv);
+  ASSERT_EQ((*mem)[START_VECTOR], JV);
+
+  pc -> setValue(START_VECTOR);
+  ASSERT_EQ(pc -> getValue(), START_VECTOR);
+
+  // jc             7 cycles
+  // mov a, #xx     4 cycles
+  // hlt            3 cycles
+  // total         14
+  auto cycles = system -> run();
+  ASSERT_EQ(system -> error, NoError);
+  ASSERT_EQ(cycles, 14);
+  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(gp_a -> getValue(), 0x42);
+}
+
+TEST_F(ControllerTest, testJvCarryNotSet) {
+  system -> bus.clearFlag(SystemBus::ProcessorFlags::V);
+  mem -> initialize(ROM_START, 9, jv);
+  ASSERT_EQ((*mem)[START_VECTOR], JV);
+
+  pc -> setValue(START_VECTOR);
+  ASSERT_EQ(pc -> getValue(), START_VECTOR);
+
+  // jc             6 cycles
+  // mov a, #xx     4 cycles
+  // hlt            3 cycles
+  // total         13
+  auto cycles = system -> run();
+  ASSERT_EQ(system -> error, NoError);
+  ASSERT_EQ(cycles, 13);
+  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(gp_a -> getValue(), 0x37);
+}
+

@@ -1,6 +1,6 @@
 #include "systembus.h"
 
-SystemError SystemBus::reset() {
+void SystemBus::_reset() {
   _xdata = true;
   _xaddr = true;
   get = 0;
@@ -13,6 +13,11 @@ SystemError SystemBus::reset() {
   rst = false;
   _io = true;
   _halt = true;
+  m_flags = Clear;
+}
+
+SystemError SystemBus::reset() {
+  _reset();
   sendEvent(EV_VALUECHANGED);
   return NoError;
 }
@@ -79,5 +84,22 @@ SystemError SystemBus::status() {
          (_xdata) ? ((_xaddr) ? '_' : 'A') : 'D');
   printf("=========================\n");
   return NoError;
+}
+
+void SystemBus::setFlag(ProcessorFlags flag) {
+  m_flags |= flag;
+}
+
+void SystemBus::clearFlag(ProcessorFlags flag) {
+  byte negated = ~flag;
+  m_flags &= negated;
+}
+
+void SystemBus::clearFlags() {
+  m_flags = Clear;
+}
+
+bool SystemBus::isSet(ProcessorFlags flag) const {
+  return (m_flags & flag) != Clear;
 }
 

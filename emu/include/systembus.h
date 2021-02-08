@@ -20,11 +20,14 @@ private:
 
   byte              m_flags;
 
+  void              _reset();
+
 public:
   enum ProcessorFlags {
-    Z = 0x01,
-    C = 0x02,
-    V = 0x04,
+    Clear = 0x00,
+    Z     = 0x01,
+    C     = 0x02,
+    V     = 0x04,
   };
 
   enum OperatorFlags {
@@ -36,6 +39,7 @@ public:
     Halt      = 0x0F,
     Done      = 0x10,
   };
+                   SystemBus() { _reset(); }
                   ~SystemBus() override = default;
   byte             readDataBus() const;
   void             putOnDataBus(byte);
@@ -55,6 +59,10 @@ public:
   void             stop();
   SystemError      reset() override;
   SystemError      status() override;
+  void             setFlag(ProcessorFlags);
+  void             clearFlag(ProcessorFlags);
+  void             clearFlags();
+  bool             isSet(ProcessorFlags) const;
 };
 
 class ConnectedComponent : public Component {

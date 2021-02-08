@@ -27,10 +27,10 @@ void MicroCodeRunner::evaluateCondition() {
   byte valid_byte;
   switch (mc -> condition_op) {
     case MicroCode::And:
-      valid_byte = m_bus -> flags() & mc -> condition;
+      valid_byte = m_bus -> isSet((SystemBus::ProcessorFlags) mc -> condition);
       break;
     case MicroCode::Nand:
-      valid_byte = (!(m_bus -> flags())) & mc -> condition;
+      valid_byte = !m_bus -> isSet((SystemBus::ProcessorFlags) mc -> condition);
       break;
     default:
       valid_byte = true;

@@ -108,7 +108,7 @@ enum OpCode {
 
 #define POP_REG(reg, opflag) \
   { .action = MicroCode::XADDR, .src = SP, .target = MEMADDR, .opflags = SystemBus::Dec }, \
-  { .action = MicroCode::XDATA, .src = reg, .target = MEM, .opflags = opflag },
+  { .action = MicroCode::XDATA, .src = MEM, .target = reg, .opflags = opflag },
 
 #define PUSH_ADDR(reg, opflag) \
   { .action = MicroCode::XADDR, .src = SP, .target = MEMADDR, .opflags = SystemBus::Inc }, \
@@ -118,9 +118,9 @@ enum OpCode {
 
 #define POP_ADDR(reg, opflag) \
   { .action = MicroCode::XADDR, .src = SP, .target = MEMADDR, .opflags = SystemBus::Dec }, \
-  { .action = MicroCode::XDATA, .src = reg, .target = MEM, .opflags = SystemBus::None }, \
+  { .action = MicroCode::XDATA, .src = MEM, .target = reg, .opflags = SystemBus::MSB }, \
   { .action = MicroCode::XADDR, .src = SP, .target = MEMADDR, .opflags = SystemBus::Dec }, \
-  { .action = MicroCode::XDATA, .src = reg, .target = MEM, .opflags = opflag | SystemBus::MSB },
+  { .action = MicroCode::XDATA, .src = MEM, .target = reg, .opflags = opflag },
 
 
 static MicroCode mc[256] = {

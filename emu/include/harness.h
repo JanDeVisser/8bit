@@ -11,6 +11,7 @@ public:
   SystemBus           bus;
   ConnectedComponent *comp = nullptr;
   bool                printStatus = false;
+  SystemError         error;
 
   explicit Harness() : bus(), m_components() {
     m_components.resize(16);
@@ -30,10 +31,11 @@ public:
     bool oldPrintStatus = printStatus;
     printStatus = debug;
     status("Starting Condition", 0);
+    error = NoError;
     int i = 0;
     do {
-      auto err = cycle(i);
-      if (err != NoError) {
+      error = cycle(i);
+      if (error != NoError) {
         goto exit;
       }
       i++;

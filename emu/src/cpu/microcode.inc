@@ -566,10 +566,10 @@ static MicroCode mc[256] = {
   },
 
   {
-    .opcode = MOV_DI_C, .instruction = "mov (di), c", .addressingMode = Immediate, // 0x40
+    .opcode = MOV_DI_D, .instruction = "mov (di), d", .addressingMode = Immediate, // 0x40
     .steps = {
       { .action = MicroCode::XADDR, .src = Di, .target = MEMADDR, .opflags = SystemBus::Inc },
-      { .action = MicroCode::XDATA, .src = GP_C, .target = MEM, .opflags = SystemBus::Done },
+      { .action = MicroCode::XDATA, .src = GP_D, .target = MEM, .opflags = SystemBus::Done },
     }
   },
 

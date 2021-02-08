@@ -51,7 +51,6 @@ public:
   byte             putID() const { return put; }
   byte             getID() const { return get; }
   byte             opflags() const { return op; }
-  byte             flags() const { return m_flags; }
 
   void             initialize(bool, bool, byte, byte, byte, byte = 0x00, byte = 0x00);
   void             xdata(int, int, int);
@@ -59,9 +58,11 @@ public:
   void             stop();
   SystemError      reset() override;
   SystemError      status() override;
+
   void             setFlag(ProcessorFlags);
   void             clearFlag(ProcessorFlags);
   void             clearFlags();
+  byte             flags() const { return m_flags; }
   bool             isSet(ProcessorFlags) const;
 };
 

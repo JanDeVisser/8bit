@@ -725,3 +725,112 @@ TEST_F(ControllerTest, testJvCarryNotSet) {
   ASSERT_EQ(gp_a -> getValue(), 0x37);
 }
 
+// MOV_ADDR_A      = 0x39,
+// MOV_ADDR_B      = 0x3B,
+// MOV_ADDR_C      = 0x3D,
+// MOV_ADDR_D      = 0x3F,
+
+const byte gp_to_absolute_mem[] = {
+  MOV_A_CONST, 0x42,
+  MOV_B_CONST, 0x43,
+  MOV_C_CONST, 0x44,
+  MOV_D_CONST, 0x45,
+  MOV_ADDR_A, 0x00, 0x20,
+  MOV_ADDR_B, 0x01, 0x20,
+  MOV_ADDR_C, 0x02, 0x20,
+  MOV_ADDR_D, 0x03, 0x20,
+  HLT,
+};
+
+TEST_F(ControllerTest, testMovGPRegToMem) {
+  mem -> initialize(ROM_START, 21, gp_to_absolute_mem);
+  ASSERT_EQ((*mem)[START_VECTOR], MOV_A_CONST);
+
+  pc -> setValue(START_VECTOR);
+  ASSERT_EQ(pc -> getValue(), START_VECTOR);
+
+  // mov a, #xx     4 cycles x4  16
+  // mov (xxxx), a  8 cycles x4  32
+  // hlt            3 cycles      3
+  // total                       51
+  auto cycles = system -> run();
+  ASSERT_EQ(system -> error, NoError);
+  ASSERT_EQ(cycles, 51);
+  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ((*mem)[0x2000], 0x42);
+  ASSERT_EQ((*mem)[0x2001], 0x43);
+  ASSERT_EQ((*mem)[0x2002], 0x44);
+  ASSERT_EQ((*mem)[0x2003], 0x45);
+}
+
+const byte gp_to_rom[] = {
+  /* 8000 */ MOV_A_CONST, 0x42,
+  /* 8002 */ MOV_ADDR_A, 0x06, 0x80, // mov (8006), a
+  /* 8005 */ HLT,
+};
+
+TEST_F(ControllerTest, testCantMovGPRegToROM) {
+  mem -> initialize(ROM_START, 21, gp_to_rom);
+  ASSERT_EQ((*mem)[START_VECTOR], MOV_A_CONST);
+
+  pc -> setValue(START_VECTOR);
+  ASSERT_EQ(pc -> getValue(), START_VECTOR);
+
+  ASSERT_NE((*mem)[0x8006], 0x42);
+  system -> run();
+  ASSERT_EQ(system -> error, ProtectedMemory);
+  ASSERT_NE((*mem)[0x8006], 0x42);
+}
+
+const byte gp_to_unmapped[] = {
+  /* 8000 */ MOV_A_CONST, 0x42,
+  /* 8002 */ MOV_ADDR_A, 0x06, 0x10, // mov (1006), a
+  /* 8005 */ HLT,
+};
+
+TEST_F(ControllerTest, testCantMovGPRegToUnmappedMem) {
+  mem -> initialize(ROM_START, 21, gp_to_unmapped);
+  ASSERT_EQ((*mem)[START_VECTOR], MOV_A_CONST);
+
+  pc -> setValue(START_VECTOR);
+  ASSERT_EQ(pc -> getValue(), START_VECTOR);
+
+  system -> run();
+  ASSERT_EQ(system -> error, ProtectedMemory);
+}
+
+const byte gp_to_di_indirect[] = {
+  MOV_A_CONST, 0x42,
+  MOV_B_CONST, 0x43,
+  MOV_C_CONST, 0x44,
+  MOV_D_CONST, 0x45,
+  MOV_DI_CONST, 0x00, 0x20,
+  MOV_DI_A,
+  MOV_DI_B,
+  MOV_DI_C,
+  MOV_DI_D,
+  HLT,
+};
+
+TEST_F(ControllerTest, testMovGPRegToDiIndirect) {
+  mem -> initialize(ROM_START, 16, gp_to_di_indirect);
+  ASSERT_EQ((*mem)[START_VECTOR], MOV_A_CONST);
+
+  pc -> setValue(START_VECTOR);
+  ASSERT_EQ(pc -> getValue(), START_VECTOR);
+
+  // mov a, #xx     4 cycles x4  16
+  // mov di, #xxxx  6 cycles      6
+  // mov (di), a    4 cycles x4  16
+  // hlt            3 cycles      3
+  // total                       41
+  auto cycles = system -> run();
+  ASSERT_EQ(system -> error, NoError);
+  ASSERT_EQ(cycles, 41);
+  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ((*mem)[0x2000], 0x42);
+  ASSERT_EQ((*mem)[0x2001], 0x43);
+  ASSERT_EQ((*mem)[0x2002], 0x44);
+  ASSERT_EQ((*mem)[0x2003], 0x45);
+}
+

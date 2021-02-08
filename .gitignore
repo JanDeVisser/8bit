@@ -6,3 +6,4 @@ gerber
 *.kicad_pcb-bak
 *.bck
 
+**/.idea

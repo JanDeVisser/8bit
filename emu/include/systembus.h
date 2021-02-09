@@ -59,7 +59,7 @@ public:
   SystemError      reset() override;
   SystemError      status() override;
 
-  void             setFlag(ProcessorFlags);
+  void             setFlag(ProcessorFlags, bool = true);
   void             clearFlag(ProcessorFlags);
   void             clearFlags();
   byte             flags() const { return m_flags; }

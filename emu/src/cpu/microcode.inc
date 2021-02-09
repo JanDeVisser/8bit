@@ -1,6 +1,7 @@
 #ifndef EMU_MICROCODE_INC
 #define EMU_MICROCODE_INC
 
+#include "alu.h"
 #include "registers.h"
 
 enum OpCode {
@@ -96,8 +97,8 @@ enum OpCode {
   OR_A_B          = 0x4B,
   NOT_A           = 0x4C,
   XOR_A_B         = 0x4D,
-  ROR_A           = 0x4E,
-  ROL_A           = 0x4F,
+  SHR_A           = 0x4E,
+  SHL_A           = 0x4F,
 
   HLT             = 0xFF
 };
@@ -623,8 +624,28 @@ static MicroCode mc[256] = {
     }
   },
 
+//  ADD_A_B         = 0x46,
+  {
+    .opcode = ADD_A_B, .instruction = "add a, b",  .addressingMode = Immediate, // 0x46
+    .steps = {
+      { .action = MicroCode::XDATA, .src = GP_A, .target = LHS, .opflags = SystemBus::None },
+      { .action = MicroCode::XDATA, .src = GP_B, .target = RHS, .opflags = ALU::ADD },
+      { .action = MicroCode::XDATA, .src = LHS, .target = GP_A, .opflags = SystemBus::Done },
+    }
+  },
 
-  { /* 70 */ }, { /* 71 */ }, { /* 72 */ }, { /* 73 */ }, { /* 74 */ }, { /* 75 */ }, { /* 76 */ },
+//  ADC_A_B         = 0x47,
+//  SUB_A_B         = 0x48,
+//  SBC_A_B         = 0x49,
+//  AND_A_B         = 0x4A,
+//  OR_A_B          = 0x4B,
+//  NOT_A           = 0x4C,
+//  XOR_A_B         = 0x4D,
+//  SHR_A           = 0x4E,
+//  SHL_A           = 0x4F,
+
+
+  { /* 71 */ }, { /* 72 */ }, { /* 73 */ }, { /* 74 */ }, { /* 75 */ }, { /* 76 */ },
   { /* 77 */ }, { /* 78 */ }, { /* 79 */ }, { /* 80 */ }, { /* 81 */ }, { /* 82 */ }, { /* 83 */ }, { /* 84 */ },
   { /* 85 */ }, { /* 86 */ }, { /* 87 */ }, { /* 88 */ }, { /* 89 */ }, { /* 90 */ }, { /* 91 */ }, { /* 92 */ },
   { /* 93 */ }, { /* 94 */ }, { /* 95 */ }, { /* 96 */ }, { /* 97 */ }, { /* 98 */ }, { /* 99 */ }, { /* 100 */ },

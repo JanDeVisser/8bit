@@ -34,23 +34,33 @@ find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Widgets REQUIRED)
 find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Svg REQUIRED)
 include_directories("include")
 
+add_library(emucomponents STATIC
+        src/cpu/alu.cpp include/alu.h
+        src/cpu/backplane.cpp include/backplane.h
+        include/clock.h src/cpu/clock.cpp
+        include/component.h src/cpu/component.cpp
+        include/controller.h src/cpu/controller.cpp
+        include/systembus.h src/cpu/systembus.cpp
+        include/harness.h
+        include/addressregister.h src/cpu/addressregister.cpp
+        include/memory.h src/cpu/memory.cpp
+        include/register.h src/cpu/register.cpp
+        src/cpu/microcode.inc include/registers.h
+)
+
 add_executable(emu
         src/gui/main.cpp
         src/gui/mainwindow.cpp
         src/gui/mainwindow.h
-        include/clock.h src/cpu/clock.cpp
-        include/backplane.h src/cpu/backplane.cpp
-        src/cpu/systembus.cpp include/systembus.h
-        src/cpu/register.cpp include/register.h
-        src/cpu/addressregister.cpp include/addressregister.h
-        src/cpu/component.cpp include/component.h
-        src/cpu/memory.cpp include/memory.h
-        src/cpu/controller.cpp include/controller.h
-        src/gui/qled.cpp src/gui/qled.h src/gui/cputhread.h src/gui/cputhread.cpp src/gui/componentview.h src/gui/componentview.cpp src/cpu/microcode.inc include/registers.h)
+        src/gui/qled.cpp src/gui/qled.h
+        src/gui/cputhread.h src/gui/cputhread.cpp
+        src/gui/componentview.h src/gui/componentview.cpp
+)
 
 target_link_libraries(
         emu
         PRIVATE
+        emucomponents
         Qt${QT_VERSION_MAJOR}::Svg
         Qt${QT_VERSION_MAJOR}::Widgets
         Qt${QT_VERSION_MAJOR}::Core
@@ -58,36 +68,21 @@ target_link_libraries(
 
 add_executable(emu_cmdline
         src/cpu/emu.cpp
-        include/clock.h src/cpu/clock.cpp
-        include/backplane.h src/cpu/backplane.cpp
-        src/cpu/systembus.cpp include/systembus.h
-        src/cpu/register.cpp include/register.h
-        src/cpu/addressregister.cpp include/addressregister.h
-        src/cpu/component.cpp include/component.h
-        src/cpu/memory.cpp include/memory.h
-        src/cpu/controller.cpp include/controller.h
-        src/cpu/microcode.inc include/registers.h)
+)
+
+target_link_libraries(emu_cmdline emucomponents)
 
 add_executable(
     emu_test
     src/test/clock.cpp
-    include/clock.h src/cpu/clock.cpp
-    include/component.h src/cpu/component.cpp
-    include/controller.h src/cpu/controller.cpp
-    include/systembus.h src/cpu/systembus.cpp
-    include/harness.h
-    include/addressregister.h src/cpu/addressregister.cpp
-    include/memory.h src/cpu/memory.cpp
-    include/register.h src/cpu/register.cpp
-    src/test/clock.cpp
     src/test/register.cpp
     src/test/addressregister.cpp
     src/test/memory.cpp
+    src/test/alu.cpp
     src/test/zzcontroller.cpp
-    src/cpu/microcode.inc include/registers.h
 )
 
-target_link_libraries(emu_test ${GTEST_LDFLAGS})
+target_link_libraries(emu_test emucomponents ${GTEST_LDFLAGS})
 target_compile_options(emu_test PUBLIC ${GTEST_CFLAGS})
 
 include(CTest)

@@ -72,7 +72,7 @@ OP0-3|Operation
 `0x0`|`ADD`
 `0x1`|`ADC`
 `0x2`|`SUB`
-`0x3`|`SUBC`
+`0x3`|`SBB`
 ...|...
 `0x8`|`AND`
 `0x9`|`OR`
@@ -85,6 +85,11 @@ OP0-3|Operation
 
 ## N O T E S
 
+### SBB (Subtract with Borrow)
+
+See here: https://en.wikipedia.org/wiki/Carry_flag#Vs._borrow_flag
+
+We use the convention that when subtracting the processor Carry flag is a borrow flag. This is in line with the Z80 and x68.
 
 ### 74xxx253 Function Table
 

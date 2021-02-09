@@ -1,6 +1,7 @@
 #include <chrono>
 #include <iostream>
 #include <gtest/gtest.h>
+#include "alu.h"
 #include "memory.h"
 #include "controller.h"
 #include "harness.h"
@@ -17,8 +18,8 @@ constexpr word START_VECTOR = ROM_START;
 class ControllerTest : public ::testing::Test {
 protected:
   Harness *system = nullptr;
-  Memory *mem = nullptr;
-  Controller *c = nullptr;
+  Memory *mem = new Memory(RAM_START, RAM_SIZE, ROM_START, ROM_SIZE, nullptr);
+  Controller *c = new Controller(mc);
   Register *gp_a = new Register(0x0);
   Register *gp_b = new Register(0x1);
   Register *gp_c = new Register(0x2);
@@ -28,11 +29,9 @@ protected:
   AddressRegister *sp = new AddressRegister(SP, "SP");
   AddressRegister *si = new AddressRegister(Si, "Si");
   AddressRegister *di = new AddressRegister(Di, "Di");
+  ALU *alu = new ALU(RHS, new Register(LHS));
 
   void SetUp() override {
-    mem = new Memory(RAM_START, RAM_SIZE, ROM_START, ROM_SIZE, nullptr);
-
-    c = new Controller(mc);
     system = new Harness();
     system -> insert(mem);
     system -> insert(c);
@@ -45,6 +44,8 @@ protected:
     system -> insert(sp);
     system -> insert(si);
     system -> insert(di);
+    system -> insert(alu);
+    system -> insert(alu -> lhs());
 //    system -> printStatus = true;
   }
 
@@ -899,5 +900,30 @@ TEST_F(ControllerTest, testMovCDRegToMemViaSiDiIndirect) {
   ASSERT_EQ((*mem)[0x2001], 0x37);
   ASSERT_EQ((*mem)[0x2010], 0x42);
   ASSERT_EQ((*mem)[0x2011], 0x37);
+}
+
+const byte add_a_b[] = {
+  MOV_A_CONST, 0x12,
+  MOV_B_CONST, 0x20,
+  ADD_A_B,
+  HLT,
+};
+
+TEST_F(ControllerTest, testAddAB) {
+  mem -> initialize(ROM_START, 6, add_a_b);
+  ASSERT_EQ((*mem)[START_VECTOR], MOV_A_CONST);
+
+  pc -> setValue(START_VECTOR);
+  ASSERT_EQ(pc -> getValue(), START_VECTOR);
+
+  // mov a, #xx      4        x2   8
+  // add a, b        5             5
+  // hlt             3             3
+  // total                        16
+  auto cycles = system -> run();
+  ASSERT_EQ(system -> error, NoError);
+  ASSERT_EQ(cycles, 16);
+  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(gp_a -> getValue(), 0x12 + 0x20);
 }
 

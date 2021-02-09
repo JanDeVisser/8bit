@@ -86,13 +86,16 @@ SystemError SystemBus::status() {
   return NoError;
 }
 
-void SystemBus::setFlag(ProcessorFlags flag) {
-  m_flags |= flag;
+void SystemBus::setFlag(ProcessorFlags flag, bool flagValue) {
+  if (flagValue) {
+    m_flags |= flag;
+  } else {
+    m_flags &= ~flag;
+  }
 }
 
 void SystemBus::clearFlag(ProcessorFlags flag) {
-  byte negated = ~flag;
-  m_flags &= negated;
+  setFlag(flag, false);
 }
 
 void SystemBus::clearFlags() {

@@ -27,6 +27,7 @@ public:
     NOT = 0x0B,
     SHL = 0x0C,
     SHR = 0x0D,
+    CLR = 0x0E,
   };
 
   ALU(int, Register *lhs);

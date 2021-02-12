@@ -13,6 +13,7 @@ constexpr word RAM_SIZE = 0x2000;
 constexpr word ROM_START = 0x8000;
 constexpr word ROM_SIZE = 0x2000;
 constexpr word START_VECTOR = ROM_START;
+constexpr word RAM_VECTOR = RAM_START;
 
 
 class ControllerTest : public ::testing::Test {
@@ -902,15 +903,266 @@ TEST_F(ControllerTest, testMovCDRegToMemViaSiDiIndirect) {
   ASSERT_EQ((*mem)[0x2011], 0x37);
 }
 
-const byte add_a_b[] = {
-  MOV_A_CONST, 0x12,
-  MOV_B_CONST, 0x20,
-  ADD_A_B,
+
+//
+// A R I T H M E T I C
+//
+
+
+typedef std::function<byte(Harness *, byte, byte)> Expect;
+
+static Expect expect[16] = {
+  /* 0x0 ADD */ [](Harness *system, byte lhs, byte rhs) {
+    return (byte) (lhs + rhs);
+  },
+
+  /* 0x1 ADC */ [](Harness *system, byte lhs, byte rhs) {
+    return (byte) (lhs + rhs +
+           + (byte) (system -> bus.isSet(SystemBus::C)));
+  },
+
+  /* 0x2 SUB */ [](Harness *system, byte lhs, byte rhs) {
+    return (byte) (lhs - rhs);
+  },
+
+  /* 0x3 SBB */ [](Harness *system, byte lhs, byte rhs) {
+    return (byte) (lhs - rhs
+           + (byte) (system -> bus.isSet(SystemBus::C)));
+  },
+
+  /* 0x4 */ nullptr,
+  /* 0x5 */ nullptr,
+  /* 0x6 */ nullptr,
+  /* 0x7 */ nullptr,
+  /* 0x8 AND */ [](Harness *system, byte lhs, byte rhs) {
+    return lhs & rhs;
+  },
+
+  /* 0x9 OR  */ [](Harness *system, byte lhs, byte rhs) {
+    return lhs | rhs;
+  },
+
+  /* 0xA XOR */ [](Harness *system, byte lhs, byte rhs) {
+    return lhs ^ rhs;
+  },
+
+  /* 0xB NOT */ [](Harness *system, byte lhs, byte rhs) {
+    return ~lhs;
+  },
+
+  /* 0xC SHL */ [](Harness *system, byte lhs, byte rhs) {
+    byte ret = lhs << 1;
+    if (system -> bus.isSet(SystemBus::C)) {
+      ret |= 0x01;
+    }
+    return ret;
+  },
+
+  /* 0xD SHR */ [](Harness *system, byte lhs, byte rhs) {
+    byte ret = lhs >> 1;
+    if (system -> bus.isSet(SystemBus::C)) {
+      ret |= 0x80;
+    }
+    return ret;
+  },
+
+  /* 0xE CLR */ [](Harness *system, byte lhs, byte rhs) {
+    return (byte) 0;
+  },
+  /* 0xF */ nullptr,
+};
+
+static byte reg2instr[4] {
+  MOV_A_CONST,
+  MOV_B_CONST,
+  MOV_C_CONST,
+  MOV_D_CONST,
+};
+
+struct OpTest {
+  byte            m_value     = 0x1F; // 31 dec
+  byte            m_value2    = 0xF8; // 248
+  byte            m_op_instr  = NOT_A;
+  int             m_reg       = GP_A;
+  int             m_reg2      = GP_B;
+  ALU::Operations m_op        = ALU::Operations::NOT;
+
+  OpTest(int reg, byte op_instr, ALU::Operations op, int reg2 = GP_B)
+    : m_reg(reg), m_op_instr(op_instr), m_op(op), m_reg2(reg2) {
+  }
+
+  virtual const byte * bytes() const = 0;
+  virtual int          bytesSize() const = 0;
+  virtual int          regs() const = 0;
+  virtual int          cycleCount() const = 0;
+
+  void value(byte val) {
+    m_value = val;
+  }
+
+  virtual void execute(Harness *system) {
+    auto *mem = dynamic_cast<Memory *>(system -> component(MEMADDR));
+    const byte *b = bytes();
+    mem -> initialize(RAM_START, bytesSize(), b);
+    ASSERT_EQ((*mem)[RAM_START], b[0]);
+    (*mem)[0x2000] = reg2instr[m_reg];
+    (*mem)[0x2001] = m_value;
+    word instrAddr = 0x2002;
+    if (regs() > 1) {
+      (*mem)[0x2002] = reg2instr[m_reg2];
+      (*mem)[0x2003] = m_value2;
+      instrAddr = 0x2004;
+    }
+    (*mem)[instrAddr] = m_op_instr;
+
+    auto *pc = dynamic_cast<AddressRegister *>(system -> component(PC));
+    pc -> setValue(RAM_START);
+    ASSERT_EQ(pc -> getValue(), RAM_START);
+
+    byte e = expect[m_op](system, m_value, m_value2);
+    auto cycles = system -> run();
+    ASSERT_EQ(system -> error, NoError);
+    ASSERT_EQ(cycles, cycleCount());
+    ASSERT_EQ(system -> bus.halt(), false);
+
+    auto *r = dynamic_cast<Register *>(system -> component(m_reg));
+    ASSERT_EQ(r -> getValue(), e);
+  }
+};
+
+
+// mov a, #xx      4
+// not a           4
+// hlt             3
+// total          11
+const byte unary_op[] = {
+  /* 2000 */ MOV_A_CONST, 0x1F,
+  /* 2002 */ NOP,
+  /* 2003 */ HLT,
+};
+
+struct UnaryOpTest : public OpTest {
+  UnaryOpTest(int reg, byte op_instr, ALU::Operations op)
+    : OpTest(reg, op_instr, op) {
+  }
+
+  const byte * bytes() const override {
+    return unary_op;
+  }
+
+  int bytesSize() const override {
+    return 4;
+  }
+
+  int regs() const override {
+    return 1;
+  }
+
+  int cycleCount() const override {
+    return 11;
+  }
+};
+
+
+// mov a, #xx      4        x2   8
+// add a, b        5             5
+// hlt             3             3
+// total                        16
+const byte binary_op[] = {
+  /* 2000 */ MOV_A_CONST, 0x1F,
+  /* 2002 */ MOV_B_CONST, 0xF8,
+  /* 2004 */ NOP,
+  /* 2005 */ HLT,
+};
+
+struct BinaryOpTest : public OpTest {
+  BinaryOpTest(int reg, int reg2, byte op_instr, ALU::Operations op)
+    : OpTest(reg, op_instr, op, reg2) {
+  }
+
+  const byte * bytes() const override {
+    return binary_op;
+  }
+
+  int bytesSize() const override {
+    return 6;
+  }
+
+  int regs() const override {
+    return 2;
+  }
+
+  int cycleCount() const override {
+    return 16;
+  }
+
+  void values(byte val1, byte val2) {
+    m_value = val1;
+    m_value2 = val2;
+  }
+};
+
+
+TEST_F(ControllerTest, testAddAB) {
+  BinaryOpTest t(GP_A, GP_B, ADD_A_B, ALU::Operations::ADD);
+  t.execute(system);
+}
+
+TEST_F(ControllerTest, testAddABSetCarry) {
+  BinaryOpTest t(GP_A, GP_B, ADD_A_B, ALU::Operations::ADD);
+  t.values(0xC0, 0xC0);
+  t.execute(system);
+  ASSERT_TRUE(system -> bus.isSet(SystemBus::C));
+}
+
+TEST_F(ControllerTest, testAddABSetOverflow) {
+  BinaryOpTest t(GP_A, GP_B, ADD_A_B, ALU::Operations::ADD);
+  t.values(100, 50);
+  t.execute(system);
+  ASSERT_TRUE(system -> bus.isSet(SystemBus::V));
+}
+
+TEST_F(ControllerTest, testAddABSetZero) {
+  BinaryOpTest t(GP_A, GP_B, ADD_A_B, ALU::Operations::ADD);
+  t.values(-20, 20);
+  t.execute(system);
+  ASSERT_TRUE(system -> bus.isSet(SystemBus::Z));
+  ASSERT_TRUE(system -> bus.isSet(SystemBus::C));
+}
+
+TEST_F(ControllerTest, testAdcABCarrySet) {
+  BinaryOpTest t(GP_A, GP_B, ADC_A_B, ALU::Operations::ADC);
+  system -> bus.setFlag(SystemBus::C);
+  t.execute(system);
+}
+
+TEST_F(ControllerTest, testAdcABCarryNotSet) {
+  BinaryOpTest t(GP_A, GP_B, ADC_A_B, ALU::Operations::ADC);
+  system -> bus.clearFlags();
+  t.execute(system);
+}
+
+const byte sub_a_b[] = {
+  MOV_A_CONST, 0x20,
+  MOV_B_CONST, 0x12,
+  SUB_A_B,
   HLT,
 };
 
-TEST_F(ControllerTest, testAddAB) {
-  mem -> initialize(ROM_START, 6, add_a_b);
+TEST_F(ControllerTest, testSubAB) {
+  BinaryOpTest t(GP_A, GP_B, SUB_A_B, ALU::Operations::SUB);
+  t.execute(system);
+}
+
+const byte sbb_a_b[] = {
+  MOV_A_CONST, 0x20,
+  MOV_B_CONST, 0x12,
+  SBB_A_B,
+  HLT,
+};
+
+TEST_F(ControllerTest, testSbbNoCarry) {
+  mem -> initialize(ROM_START, 6, sbb_a_b);
   ASSERT_EQ((*mem)[START_VECTOR], MOV_A_CONST);
 
   pc -> setValue(START_VECTOR);
@@ -924,6 +1176,515 @@ TEST_F(ControllerTest, testAddAB) {
   ASSERT_EQ(system -> error, NoError);
   ASSERT_EQ(cycles, 16);
   ASSERT_EQ(system -> bus.halt(), false);
-  ASSERT_EQ(gp_a -> getValue(), 0x12 + 0x20);
+  ASSERT_EQ(gp_a -> getValue(), 0x20 - 0x12);
 }
 
+TEST_F(ControllerTest, testSbbWithCarry) {
+  mem -> initialize(ROM_START, 6, sbb_a_b);
+  ASSERT_EQ((*mem)[START_VECTOR], MOV_A_CONST);
+
+  pc -> setValue(START_VECTOR);
+  ASSERT_EQ(pc -> getValue(), START_VECTOR);
+
+  // mov a, #xx      4        x2   8
+  // add a, b        5             5
+  // hlt             3             3
+  // total                        16
+  system -> bus.setFlag(SystemBus::C);
+  auto cycles = system -> run();
+  ASSERT_EQ(system -> error, NoError);
+  ASSERT_EQ(cycles, 16);
+  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(gp_a -> getValue(), 0x20 - 0x12 + 0x01);
+}
+
+// mov a, #xx      4        x2   8
+// add a, b        5             5
+// hlt             3             3
+// total                        16
+const byte op_a_b[] = {
+  /* 2000 */ MOV_A_CONST, 0x1F,
+  /* 2002 */ MOV_B_CONST, 0xF8,
+  /* 2004 */ NOP,
+  /* 2005 */ HLT,
+};
+
+TEST_F(ControllerTest, testAndAB) {
+  mem -> initialize(RAM_START, 6, op_a_b);
+  ASSERT_EQ((*mem)[RAM_START], MOV_A_CONST);
+  (*mem)[0x2004] = AND_A_B;
+
+  pc -> setValue(RAM_START);
+  ASSERT_EQ(pc -> getValue(), RAM_START);
+
+  auto cycles = system -> run();
+  ASSERT_EQ(system -> error, NoError);
+  ASSERT_EQ(cycles, 16);
+  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(gp_a -> getValue(), 0x1F & 0xF8);
+}
+
+TEST_F(ControllerTest, testOrAB) {
+  mem -> initialize(RAM_START, 6, op_a_b);
+  ASSERT_EQ((*mem)[RAM_START], MOV_A_CONST);
+  (*mem)[0x2004] = OR_A_B;
+
+  pc -> setValue(RAM_START);
+  ASSERT_EQ(pc -> getValue(), RAM_START);
+
+  auto cycles = system -> run();
+  ASSERT_EQ(system -> error, NoError);
+  ASSERT_EQ(cycles, 16);
+  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(gp_a -> getValue(), 0x1F | 0xF8);
+}
+
+TEST_F(ControllerTest, testXorAB) {
+  mem -> initialize(RAM_START, 6, op_a_b);
+  ASSERT_EQ((*mem)[RAM_START], MOV_A_CONST);
+  (*mem)[0x2004] = XOR_A_B;
+
+  pc -> setValue(RAM_START);
+  ASSERT_EQ(pc -> getValue(), RAM_START);
+
+  auto cycles = system -> run();
+  ASSERT_EQ(system -> error, NoError);
+  ASSERT_EQ(cycles, 16);
+  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(gp_a -> getValue(), 0x1F ^ 0xF8);
+}
+
+// Register A Unary Operations
+
+TEST_F(ControllerTest, testNotA) {
+  UnaryOpTest t(GP_A, NOT_A, ALU::Operations::NOT);
+  t.execute(system);
+}
+
+TEST_F(ControllerTest, testShlA) {
+  UnaryOpTest t(GP_A, SHL_A, ALU::Operations::SHL);
+  t.execute(system);
+}
+
+TEST_F(ControllerTest, testShrA) {
+  UnaryOpTest t(GP_A, SHR_A, ALU::Operations::SHR);
+  t.execute(system);
+}
+
+TEST_F(ControllerTest, testClrA) {
+  UnaryOpTest t(GP_A, CLR_A, ALU::Operations::CLR);
+  t.execute(system);
+  ASSERT_TRUE(system -> bus.isSet(SystemBus::Z));
+}
+
+// Arithmetic A, C.
+
+TEST_F(ControllerTest, testAddAC) {
+  mem -> initialize(RAM_START, 6, op_a_b);
+  ASSERT_EQ((*mem)[RAM_START], MOV_A_CONST);
+  (*mem)[0x2002] = MOV_C_CONST;
+  (*mem)[0x2004] = ADD_A_C;
+
+  pc -> setValue(RAM_START);
+  ASSERT_EQ(pc -> getValue(), RAM_START);
+
+  auto cycles = system -> run();
+  ASSERT_EQ(system -> error, NoError);
+  ASSERT_EQ(cycles, 16);
+  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(gp_a -> getValue(), (byte) (0x1F + 0xF8));
+}
+
+TEST_F(ControllerTest, testAdcAC) {
+  mem -> initialize(RAM_START, 6, op_a_b);
+  ASSERT_EQ((*mem)[RAM_START], MOV_A_CONST);
+  (*mem)[0x2002] = MOV_C_CONST;
+  (*mem)[0x2004] = ADC_A_C;
+  system -> bus.setFlag(SystemBus::C);
+
+  pc -> setValue(RAM_START);
+  ASSERT_EQ(pc -> getValue(), RAM_START);
+
+  auto cycles = system -> run();
+  ASSERT_EQ(system -> error, NoError);
+  ASSERT_EQ(cycles, 16);
+  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(gp_a -> getValue(), (byte) (0x1F + 0xF8 + 1));
+}
+
+TEST_F(ControllerTest, testSubAC) {
+  mem -> initialize(RAM_START, 6, op_a_b);
+  ASSERT_EQ((*mem)[RAM_START], MOV_A_CONST);
+  (*mem)[0x2002] = MOV_C_CONST;
+  (*mem)[0x2004] = SUB_A_C;
+
+  pc -> setValue(RAM_START);
+  ASSERT_EQ(pc -> getValue(), RAM_START);
+
+  auto cycles = system -> run();
+  ASSERT_EQ(system -> error, NoError);
+  ASSERT_EQ(cycles, 16);
+  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(gp_a -> getValue(), (byte) (0x1F - 0xF8));
+}
+
+TEST_F(ControllerTest, testSbbAC) {
+  mem -> initialize(RAM_START, 6, op_a_b);
+  ASSERT_EQ((*mem)[RAM_START], MOV_A_CONST);
+  (*mem)[0x2002] = MOV_C_CONST;
+  (*mem)[0x2004] = SBB_A_C;
+  system -> bus.setFlag(SystemBus::C);
+
+  pc -> setValue(RAM_START);
+  ASSERT_EQ(pc -> getValue(), RAM_START);
+
+  auto cycles = system -> run();
+  ASSERT_EQ(system -> error, NoError);
+  ASSERT_EQ(cycles, 16);
+  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(gp_a -> getValue(), (byte) (0x1F - 0xF8 + 1));
+}
+
+TEST_F(ControllerTest, testAndAC) {
+  mem -> initialize(RAM_START, 6, op_a_b);
+  ASSERT_EQ((*mem)[RAM_START], MOV_A_CONST);
+  (*mem)[0x2002] = MOV_C_CONST;
+  (*mem)[0x2004] = AND_A_C;
+
+  pc -> setValue(RAM_START);
+  ASSERT_EQ(pc -> getValue(), RAM_START);
+
+  auto cycles = system -> run();
+  ASSERT_EQ(system -> error, NoError);
+  ASSERT_EQ(cycles, 16);
+  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(gp_a -> getValue(), 0x1F & 0xF8);
+}
+
+TEST_F(ControllerTest, testOrAC) {
+  mem -> initialize(RAM_START, 6, op_a_b);
+  ASSERT_EQ((*mem)[RAM_START], MOV_A_CONST);
+  (*mem)[0x2002] = MOV_C_CONST;
+  (*mem)[0x2004] = OR_A_C;
+
+  pc -> setValue(RAM_START);
+  ASSERT_EQ(pc -> getValue(), RAM_START);
+
+  auto cycles = system -> run();
+  ASSERT_EQ(system -> error, NoError);
+  ASSERT_EQ(cycles, 16);
+  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(gp_a -> getValue(), 0x1F | 0xF8);
+}
+
+TEST_F(ControllerTest, testXorAC) {
+  mem -> initialize(RAM_START, 6, op_a_b);
+  ASSERT_EQ((*mem)[RAM_START], MOV_A_CONST);
+  (*mem)[0x2002] = MOV_C_CONST;
+  (*mem)[0x2004] = XOR_A_C;
+
+  pc -> setValue(RAM_START);
+  ASSERT_EQ(pc -> getValue(), RAM_START);
+
+  auto cycles = system -> run();
+  ASSERT_EQ(system -> error, NoError);
+  ASSERT_EQ(cycles, 16);
+  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(gp_a -> getValue(), 0x1F ^ 0xF8);
+}
+
+// Arithmetic A, D.
+
+TEST_F(ControllerTest, testAddAD) {
+  mem -> initialize(RAM_START, 6, op_a_b);
+  ASSERT_EQ((*mem)[RAM_START], MOV_A_CONST);
+  (*mem)[0x2002] = MOV_D_CONST;
+  (*mem)[0x2004] = ADD_A_D;
+
+  pc -> setValue(RAM_START);
+  ASSERT_EQ(pc -> getValue(), RAM_START);
+
+  auto cycles = system -> run();
+  ASSERT_EQ(system -> error, NoError);
+  ASSERT_EQ(cycles, 16);
+  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(gp_a -> getValue(), (byte) (0x1F + 0xF8));
+}
+
+TEST_F(ControllerTest, testAdcAD) {
+  mem -> initialize(RAM_START, 6, op_a_b);
+  ASSERT_EQ((*mem)[RAM_START], MOV_A_CONST);
+  (*mem)[0x2002] = MOV_D_CONST;
+  (*mem)[0x2004] = ADC_A_D;
+  system -> bus.setFlag(SystemBus::C);
+
+  pc -> setValue(RAM_START);
+  ASSERT_EQ(pc -> getValue(), RAM_START);
+
+  auto cycles = system -> run();
+  ASSERT_EQ(system -> error, NoError);
+  ASSERT_EQ(cycles, 16);
+  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(gp_a -> getValue(), (byte) (0x1F + 0xF8 + 1));
+}
+
+TEST_F(ControllerTest, testSubAD) {
+  mem -> initialize(RAM_START, 6, op_a_b);
+  ASSERT_EQ((*mem)[RAM_START], MOV_A_CONST);
+  (*mem)[0x2002] = MOV_D_CONST;
+  (*mem)[0x2004] = SUB_A_D;
+
+  pc -> setValue(RAM_START);
+  ASSERT_EQ(pc -> getValue(), RAM_START);
+
+  auto cycles = system -> run();
+  ASSERT_EQ(system -> error, NoError);
+  ASSERT_EQ(cycles, 16);
+  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(gp_a -> getValue(), (byte) (0x1F - 0xF8));
+}
+
+TEST_F(ControllerTest, testSbbAD) {
+  mem -> initialize(RAM_START, 6, op_a_b);
+  ASSERT_EQ((*mem)[RAM_START], MOV_A_CONST);
+  (*mem)[0x2002] = MOV_D_CONST;
+  (*mem)[0x2004] = SBB_A_D;
+  system -> bus.setFlag(SystemBus::C);
+
+  pc -> setValue(RAM_START);
+  ASSERT_EQ(pc -> getValue(), RAM_START);
+
+  auto cycles = system -> run();
+  ASSERT_EQ(system -> error, NoError);
+  ASSERT_EQ(cycles, 16);
+  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(gp_a -> getValue(), (byte) (0x1F - 0xF8 + 1));
+}
+
+TEST_F(ControllerTest, testAndAD) {
+  mem -> initialize(RAM_START, 6, op_a_b);
+  ASSERT_EQ((*mem)[RAM_START], MOV_A_CONST);
+  (*mem)[0x2002] = MOV_D_CONST;
+  (*mem)[0x2004] = AND_A_D;
+
+  pc -> setValue(RAM_START);
+  ASSERT_EQ(pc -> getValue(), RAM_START);
+
+  auto cycles = system -> run();
+  ASSERT_EQ(system -> error, NoError);
+  ASSERT_EQ(cycles, 16);
+  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(gp_a -> getValue(), 0x1F & 0xF8);
+}
+
+TEST_F(ControllerTest, testOrAD) {
+  mem -> initialize(RAM_START, 6, op_a_b);
+  ASSERT_EQ((*mem)[RAM_START], MOV_A_CONST);
+  (*mem)[0x2002] = MOV_D_CONST;
+  (*mem)[0x2004] = OR_A_D;
+
+  pc -> setValue(RAM_START);
+  ASSERT_EQ(pc -> getValue(), RAM_START);
+
+  auto cycles = system -> run();
+  ASSERT_EQ(system -> error, NoError);
+  ASSERT_EQ(cycles, 16);
+  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(gp_a -> getValue(), 0x1F | 0xF8);
+}
+
+TEST_F(ControllerTest, testXorAD) {
+  mem -> initialize(RAM_START, 6, op_a_b);
+  ASSERT_EQ((*mem)[RAM_START], MOV_A_CONST);
+  (*mem)[0x2002] = MOV_D_CONST;
+  (*mem)[0x2004] = XOR_A_D;
+
+  pc -> setValue(RAM_START);
+  ASSERT_EQ(pc -> getValue(), RAM_START);
+
+  auto cycles = system -> run();
+  ASSERT_EQ(system -> error, NoError);
+  ASSERT_EQ(cycles, 16);
+  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(gp_a -> getValue(), 0x1F ^ 0xF8);
+}
+
+
+// Register B Unary Operations
+
+TEST_F(ControllerTest, testNotB) {
+  UnaryOpTest t(GP_B, NOT_B, ALU::Operations::NOT);
+  t.execute(system);
+}
+
+TEST_F(ControllerTest, testShlB) {
+  UnaryOpTest t(GP_B, SHL_B, ALU::Operations::SHL);
+  t.execute(system);
+}
+
+TEST_F(ControllerTest, testShrB) {
+  UnaryOpTest t(GP_B, SHR_B, ALU::Operations::SHR);
+  t.execute(system);
+}
+
+TEST_F(ControllerTest, testClrB) {
+  UnaryOpTest t(GP_B, CLR_B, ALU::Operations::CLR);
+  t.execute(system);
+  ASSERT_TRUE(system -> bus.isSet(SystemBus::Z));
+}
+
+
+// Register C Unary Operations
+
+TEST_F(ControllerTest, testNotC) {
+  UnaryOpTest t(GP_C, NOT_C, ALU::Operations::NOT);
+  t.execute(system);
+}
+
+TEST_F(ControllerTest, testShlC) {
+  UnaryOpTest t(GP_C, SHL_C, ALU::Operations::SHL);
+  t.execute(system);
+}
+
+TEST_F(ControllerTest, testShrC) {
+  UnaryOpTest t(GP_C, SHR_C, ALU::Operations::SHR);
+  t.execute(system);
+}
+
+TEST_F(ControllerTest, testClrC) {
+  UnaryOpTest t(GP_C, CLR_C, ALU::Operations::CLR);
+  t.execute(system);
+  ASSERT_TRUE(system -> bus.isSet(SystemBus::Z));
+}
+
+
+// Register D Unary Operations
+
+TEST_F(ControllerTest, testNotD) {
+  UnaryOpTest t(GP_D, NOT_D, ALU::Operations::NOT);
+  t.execute(system);
+}
+
+TEST_F(ControllerTest, testShlD) {
+  UnaryOpTest t(GP_D, SHL_D, ALU::Operations::SHL);
+  t.execute(system);
+}
+
+TEST_F(ControllerTest, testShrD) {
+  UnaryOpTest t(GP_D, SHR_D, ALU::Operations::SHR);
+  t.execute(system);
+}
+
+TEST_F(ControllerTest, testClrD) {
+  UnaryOpTest t(GP_D, CLR_D, ALU::Operations::CLR);
+  t.execute(system);
+  ASSERT_TRUE(system -> bus.isSet(SystemBus::Z));
+}
+
+
+// SWAP
+
+TEST_F(ControllerTest, testSwpAB) {
+  mem -> initialize(RAM_START, 6, op_a_b);
+  ASSERT_EQ((*mem)[RAM_START], MOV_A_CONST);
+  (*mem)[0x2002] = MOV_B_CONST;
+  (*mem)[0x2004] = SWP_A_B;
+
+  pc -> setValue(RAM_START);
+  ASSERT_EQ(pc -> getValue(), RAM_START);
+
+  auto cycles = system -> run();
+  ASSERT_EQ(system -> error, NoError);
+  ASSERT_EQ(cycles, 16);
+  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(gp_a -> getValue(),  0xF8);
+  ASSERT_EQ(gp_b -> getValue(),  0x1F);
+}
+
+TEST_F(ControllerTest, testSwpAC) {
+  mem -> initialize(RAM_START, 6, op_a_b);
+  ASSERT_EQ((*mem)[RAM_START], MOV_A_CONST);
+  (*mem)[0x2002] = MOV_C_CONST;
+  (*mem)[0x2004] = SWP_A_C;
+
+  pc -> setValue(RAM_START);
+  ASSERT_EQ(pc -> getValue(), RAM_START);
+
+  auto cycles = system -> run();
+  ASSERT_EQ(system -> error, NoError);
+  ASSERT_EQ(cycles, 16);
+  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(gp_a -> getValue(),  0xF8);
+  ASSERT_EQ(gp_c -> getValue(),  0x1F);
+}
+
+TEST_F(ControllerTest, testSwpAD) {
+  mem -> initialize(RAM_START, 6, op_a_b);
+  ASSERT_EQ((*mem)[RAM_START], MOV_A_CONST);
+  (*mem)[0x2002] = MOV_D_CONST;
+  (*mem)[0x2004] = SWP_A_D;
+
+  pc -> setValue(RAM_START);
+  ASSERT_EQ(pc -> getValue(), RAM_START);
+
+  auto cycles = system -> run();
+  ASSERT_EQ(system -> error, NoError);
+  ASSERT_EQ(cycles, 16);
+  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(gp_a -> getValue(),  0xF8);
+  ASSERT_EQ(gp_d -> getValue(),  0x1F);
+}
+
+TEST_F(ControllerTest, testSwpBC) {
+  mem -> initialize(RAM_START, 6, op_a_b);
+  ASSERT_EQ((*mem)[RAM_START], MOV_A_CONST);
+  (*mem)[0x2000] = MOV_B_CONST;
+  (*mem)[0x2002] = MOV_C_CONST;
+  (*mem)[0x2004] = SWP_B_C;
+
+  pc -> setValue(RAM_START);
+  ASSERT_EQ(pc -> getValue(), RAM_START);
+
+  auto cycles = system -> run();
+  ASSERT_EQ(system -> error, NoError);
+  ASSERT_EQ(cycles, 16);
+  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(gp_b -> getValue(),  0xF8);
+  ASSERT_EQ(gp_c -> getValue(),  0x1F);
+}
+
+TEST_F(ControllerTest, testSwpBD) {
+  mem -> initialize(RAM_START, 6, op_a_b);
+  ASSERT_EQ((*mem)[RAM_START], MOV_A_CONST);
+  (*mem)[0x2000] = MOV_B_CONST;
+  (*mem)[0x2002] = MOV_D_CONST;
+  (*mem)[0x2004] = SWP_B_D;
+
+  pc -> setValue(RAM_START);
+  ASSERT_EQ(pc -> getValue(), RAM_START);
+
+  auto cycles = system -> run();
+  ASSERT_EQ(system -> error, NoError);
+  ASSERT_EQ(cycles, 16);
+  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(gp_b -> getValue(),  0xF8);
+  ASSERT_EQ(gp_d -> getValue(),  0x1F);
+}
+
+TEST_F(ControllerTest, testSwpCD) {
+  mem -> initialize(RAM_START, 6, op_a_b);
+  ASSERT_EQ((*mem)[RAM_START], MOV_A_CONST);
+  (*mem)[0x2000] = MOV_C_CONST;
+  (*mem)[0x2002] = MOV_D_CONST;
+  (*mem)[0x2004] = SWP_C_D;
+
+  pc -> setValue(RAM_START);
+  ASSERT_EQ(pc -> getValue(), RAM_START);
+
+  auto cycles = system -> run();
+  ASSERT_EQ(system -> error, NoError);
+  ASSERT_EQ(cycles, 16);
+  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(gp_c -> getValue(),  0xF8);
+  ASSERT_EQ(gp_d -> getValue(),  0x1F);
+}

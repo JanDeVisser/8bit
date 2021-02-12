@@ -171,6 +171,30 @@ TEST_F(ALUTest, subSetOverflowNegPos) {
   ASSERT_TRUE(system -> bus.isSet(SystemBus::V));
 }
 
+TEST_F(ALUTest, sbbNoCarry) {
+  system -> bus.setFlag(SystemBus::C, false);
+  system -> cycle(false, true, 1, LHS, 0x0, 0x14);
+  ASSERT_EQ(lhs -> getValue(), 0x14);
+  system -> cycle(false, true, 1, RHS, 0x3, 0x0F);
+  ASSERT_EQ(alu -> getValue(), 0x0F);
+  ASSERT_EQ(lhs -> getValue(), 0x14 - 0x0F);
+  ASSERT_FALSE(system -> bus.isSet(SystemBus::Z));
+  ASSERT_FALSE(system -> bus.isSet(SystemBus::C));
+  ASSERT_FALSE(system -> bus.isSet(SystemBus::V));
+}
+
+TEST_F(ALUTest, sbbWithCarry) {
+  system -> bus.setFlag(SystemBus::C, true);
+  system -> cycle(false, true, 1, LHS, 0x0, 0x14);
+  ASSERT_EQ(lhs -> getValue(), 0x14);
+  system -> cycle(false, true, 1, RHS, 0x3, 0x0F);
+  ASSERT_EQ(alu -> getValue(), 0x0F);
+  ASSERT_EQ(lhs -> getValue(), 0x14 - 0x0F + 1);
+  ASSERT_FALSE(system -> bus.isSet(SystemBus::Z));
+  ASSERT_FALSE(system -> bus.isSet(SystemBus::C));
+  ASSERT_FALSE(system -> bus.isSet(SystemBus::V));
+}
+
 TEST_F(ALUTest, bitwiseAnd) {
   system -> cycle(false, true, 1, LHS, 0x0, 0b00011111);
   ASSERT_EQ(lhs -> getValue(), 0x1F);
@@ -258,11 +282,39 @@ TEST_F(ALUTest, shl) {
   ASSERT_FALSE(system -> bus.isSet(SystemBus::V));
 }
 
+TEST_F(ALUTest, shlSetCarry) {
+  system -> cycle(false, true, 1, RHS, 0xC, 0b10101010);
+  ASSERT_EQ(alu -> getValue(), 0b10101010);
+  ASSERT_EQ(lhs -> getValue(), 0b01010100);
+  ASSERT_FALSE(system -> bus.isSet(SystemBus::Z));
+  ASSERT_TRUE(system -> bus.isSet(SystemBus::C));
+  ASSERT_FALSE(system -> bus.isSet(SystemBus::V));
+}
+
 TEST_F(ALUTest, shr) {
   system -> cycle(false, true, 1, RHS, 0xD, 0b10101010);
   ASSERT_EQ(alu -> getValue(), 0xAA);
   ASSERT_EQ(lhs -> getValue(), 0b01010101 /* 0x55 */);
   ASSERT_FALSE(system -> bus.isSet(SystemBus::Z));
+  ASSERT_FALSE(system -> bus.isSet(SystemBus::C));
+  ASSERT_FALSE(system -> bus.isSet(SystemBus::V));
+}
+
+TEST_F(ALUTest, shrSetCarry) {
+  system -> cycle(false, true, 1, RHS, 0xD, 0b01010101);
+  ASSERT_EQ(alu -> getValue(), 0b01010101);
+  ASSERT_EQ(lhs -> getValue(), 0b00101010);
+  ASSERT_FALSE(system -> bus.isSet(SystemBus::Z));
+  ASSERT_TRUE(system -> bus.isSet(SystemBus::C));
+  ASSERT_FALSE(system -> bus.isSet(SystemBus::V));
+}
+
+
+TEST_F(ALUTest, clr) {
+  system -> cycle(false, true, 1, RHS, 0xE, 0b10101010);
+  ASSERT_EQ(alu -> getValue(), 0xAA);
+  ASSERT_EQ(lhs -> getValue(), 0x00);
+  ASSERT_TRUE(system -> bus.isSet(SystemBus::Z));
   ASSERT_FALSE(system -> bus.isSet(SystemBus::C));
   ASSERT_FALSE(system -> bus.isSet(SystemBus::V));
 }

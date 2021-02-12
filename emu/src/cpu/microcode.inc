@@ -2,106 +2,8 @@
 #define EMU_MICROCODE_INC
 
 #include "alu.h"
+#include "opcodes.h"
 #include "registers.h"
-
-enum OpCode {
-  NOP             = 0x00,
-  MOV_A_CONST     = 0x01,
-  MOV_A_ADDR      = 0x02,
-  MOV_A_B         = 0x03,
-  MOV_A_C         = 0x04,
-  MOV_A_D         = 0x05,
-
-  MOV_B_CONST     = 0x06,
-  MOV_B_ADDR      = 0x07,
-  MOV_B_A         = 0x08,
-  MOV_B_C         = 0x09,
-  MOV_B_D         = 0x0A,
-
-  MOV_C_CONST     = 0x0B,
-  MOV_C_ADDR      = 0x0C,
-  MOV_C_A         = 0x0D,
-  MOV_C_B         = 0x0E,
-  MOV_C_D         = 0x0F,
-
-  MOV_D_CONST     = 0x10,
-  MOV_D_ADDR      = 0x11,
-  MOV_D_A         = 0x12,
-  MOV_D_B         = 0x13,
-  MOV_D_C         = 0x14,
-
-  MOV_SP_CONST    = 0x15,
-  MOV_SP_ADDR     = 0x16,
-  MOV_SP_SI       = 0x17,
-
-  MOV_SI_CONST    = 0x18,
-  MOV_SI_ADDR     = 0x19,
-  MOV_SI_CD       = 0x1A,
-
-  MOV_DI_CONST    = 0x1B,
-  MOV_DI_ADDR     = 0x1C,
-  MOV_DI_CD       = 0x1D,
-
-  MOV_A_SI        = 0x1E,
-  MOV_B_SI        = 0x1F,
-  MOV_C_SI        = 0x20,
-  MOV_D_SI        = 0x21,
-
-  MOV_A_DI        = 0x22,
-  MOV_B_DI        = 0x23,
-  MOV_C_DI        = 0x24,
-  MOV_D_DI        = 0x25,
-
-  MOV_DI_SI       = 0x26,
-
-  JMP             = 0x27,
-  JNZ             = 0x28,
-  JC              = 0x29,
-  JV              = 0x2A,
-  CALL            = 0x2B,
-  RET             = 0x2C,
-
-  PUSH_A          = 0x2D,
-  PUSH_B          = 0x2E,
-  PUSH_C          = 0x2F,
-  PUSH_D          = 0x30,
-  PUSH_SI         = 0x31,
-  PUSH_DI         = 0x32,
-  POP_A           = 0x33,
-  POP_B           = 0x34,
-  POP_C           = 0x35,
-  POP_D           = 0x36,
-  POP_SI          = 0x37,
-  POP_DI          = 0x38,
-
-  MOV_ADDR_A      = 0x39,
-  MOV_DI_A        = 0x3A,
-  MOV_ADDR_B      = 0x3B,
-  MOV_DI_B        = 0x3C,
-  MOV_ADDR_C      = 0x3D,
-  MOV_DI_C        = 0x3E,
-  MOV_ADDR_D      = 0x3F,
-  MOV_DI_D        = 0x40,
-
-  MOV_ADDR_SI     = 0x41,
-  MOV_ADDR_DI     = 0x42,
-  MOV_ADDR_CD     = 0x43,
-  MOV_SI_CD_      = 0x44,
-  MOV_DI_CD_      = 0x45,
-
-  ADD_A_B         = 0x46,
-  ADC_A_B         = 0x47,
-  SUB_A_B         = 0x48,
-  SBC_A_B         = 0x49,
-  AND_A_B         = 0x4A,
-  OR_A_B          = 0x4B,
-  NOT_A           = 0x4C,
-  XOR_A_B         = 0x4D,
-  SHR_A           = 0x4E,
-  SHL_A           = 0x4F,
-
-  HLT             = 0xFF
-};
 
 #define PUSH_REG(reg, opflag) \
   { .action = MicroCode::XADDR, .src = SP, .target = MEMADDR, .opflags = SystemBus::Inc }, \
@@ -122,6 +24,36 @@ enum OpCode {
   { .action = MicroCode::XDATA, .src = MEM, .target = reg, .opflags = SystemBus::MSB }, \
   { .action = MicroCode::XADDR, .src = SP, .target = MEMADDR, .opflags = SystemBus::Dec }, \
   { .action = MicroCode::XDATA, .src = MEM, .target = reg, .opflags = opflag },
+
+
+#define ALU_OP(op, instr, lhs, rhs, aluOp) \
+  { \
+    .opcode = op, .instruction = instr,  .addressingMode = Immediate, \
+    .steps = { \
+      { .action = MicroCode::XDATA, .src = lhs, .target = LHS, .opflags = SystemBus::None }, \
+      { .action = MicroCode::XDATA, .src = rhs, .target = RHS, .opflags = ALU:: aluOp }, \
+      { .action = MicroCode::XDATA, .src = LHS, .target = lhs, .opflags = SystemBus::Done }, \
+    } \
+  }
+
+#define ALU_UNARY_OP(op, instr, reg, aluOp) \
+  { \
+    .opcode = op, .instruction = instr,  .addressingMode = Immediate, \
+    .steps = { \
+      { .action = MicroCode::XDATA, .src = reg, .target = RHS, .opflags = ALU:: aluOp }, \
+      { .action = MicroCode::XDATA, .src = LHS, .target = reg, .opflags = SystemBus::Done }, \
+    } \
+  }
+
+#define SWAP(op, instr, reg1, reg2) \
+  { \
+    .opcode = op, .instruction = instr,  .addressingMode = Immediate, \
+    .steps = { \
+      { .action = MicroCode::XDATA, .src = reg1, .target = TX, .opflags = SystemBus::None }, \
+      { .action = MicroCode::XDATA, .src = reg2, .target = reg1, .opflags = SystemBus::None }, \
+      { .action = MicroCode::XDATA, .src = TX, .target = reg2, .opflags = SystemBus::Done }, \
+    } \
+  }
 
 
 static MicroCode mc[256] = {
@@ -515,14 +447,14 @@ static MicroCode mc[256] = {
   },
 
   {
-    .opcode = MOV_ADDR_A, .instruction = "mov (%04x), a", .addressingMode = DirectWord, .target = MEMADDR, // 0x39
+    .opcode = MOV_ADDR_A, .instruction = "mov (%04x),a", .addressingMode = DirectWord, .target = MEMADDR, // 0x39
     .steps = {
       { .action = MicroCode::XDATA, .src = GP_A, .target = MEM, .opflags = SystemBus::Done },
     }
   },
 
   {
-    .opcode = MOV_DI_A, .instruction = "mov (di), a", .addressingMode = Immediate, // 0x3A
+    .opcode = MOV_DI_A, .instruction = "mov (di),a", .addressingMode = Immediate, // 0x3A
     .steps = {
       { .action = MicroCode::XADDR, .src = Di, .target = MEMADDR, .opflags = SystemBus::Inc },
       { .action = MicroCode::XDATA, .src = GP_A, .target = MEM, .opflags = SystemBus::Done },
@@ -530,14 +462,14 @@ static MicroCode mc[256] = {
   },
 
   {
-    .opcode = MOV_ADDR_B, .instruction = "mov (%04x), b", .addressingMode = DirectWord, .target = MEMADDR, // 0x3B
+    .opcode = MOV_ADDR_B, .instruction = "mov (%04x),b", .addressingMode = DirectWord, .target = MEMADDR, // 0x3B
     .steps = {
       { .action = MicroCode::XDATA, .src = GP_B, .target = MEM, .opflags = SystemBus::Done },
     }
   },
 
   {
-    .opcode = MOV_DI_B, .instruction = "mov (di), b", .addressingMode = Immediate, // 0x3C
+    .opcode = MOV_DI_B, .instruction = "mov (di),b", .addressingMode = Immediate, // 0x3C
     .steps = {
       { .action = MicroCode::XADDR, .src = Di, .target = MEMADDR, .opflags = SystemBus::Inc },
       { .action = MicroCode::XDATA, .src = GP_B, .target = MEM, .opflags = SystemBus::Done },
@@ -545,14 +477,14 @@ static MicroCode mc[256] = {
   },
 
   {
-    .opcode = MOV_ADDR_C, .instruction = "mov (%04x), c",  .addressingMode = DirectWord, .target = MEMADDR, // 0x3D
+    .opcode = MOV_ADDR_C, .instruction = "mov (%04x),c",  .addressingMode = DirectWord, .target = MEMADDR, // 0x3D
     .steps = {
       { .action = MicroCode::XDATA, .src = GP_C, .target = MEM, .opflags = SystemBus::Done },
     }
   },
 
   {
-    .opcode = MOV_DI_C, .instruction = "mov (di), c", .addressingMode = Immediate, // 0x3E
+    .opcode = MOV_DI_C, .instruction = "mov (di),c", .addressingMode = Immediate, // 0x3E
     .steps = {
       { .action = MicroCode::XADDR, .src = Di, .target = MEMADDR, .opflags = SystemBus::Inc },
       { .action = MicroCode::XDATA, .src = GP_C, .target = MEM, .opflags = SystemBus::Done },
@@ -560,14 +492,14 @@ static MicroCode mc[256] = {
   },
 
   {
-    .opcode = MOV_ADDR_D, .instruction = "mov (%04x), d",  .addressingMode = DirectWord, .target = MEMADDR, // 0x3F
+    .opcode = MOV_ADDR_D, .instruction = "mov (%04x),d",  .addressingMode = DirectWord, .target = MEMADDR, // 0x3F
     .steps = {
       { .action = MicroCode::XDATA, .src = GP_D, .target = MEM, .opflags = SystemBus::Done },
     }
   },
 
   {
-    .opcode = MOV_DI_D, .instruction = "mov (di), d", .addressingMode = Immediate, // 0x40
+    .opcode = MOV_DI_D, .instruction = "mov (di),d", .addressingMode = Immediate, // 0x40
     .steps = {
       { .action = MicroCode::XADDR, .src = Di, .target = MEMADDR, .opflags = SystemBus::Inc },
       { .action = MicroCode::XDATA, .src = GP_D, .target = MEM, .opflags = SystemBus::Done },
@@ -575,7 +507,7 @@ static MicroCode mc[256] = {
   },
 
   {
-    .opcode = MOV_ADDR_SI, .instruction = "mov (%04x), si",  .addressingMode = DirectWord, .target = TX, // 0x41
+    .opcode = MOV_ADDR_SI, .instruction = "mov (%04x),si",  .addressingMode = DirectWord, .target = TX, // 0x41
     .steps = {
       { .action = MicroCode::XADDR, .src = TX, .target = MEMADDR, .opflags = SystemBus::Inc },
       { .action = MicroCode::XDATA, .src = Si, .target = MEM, .opflags = SystemBus::None },
@@ -585,7 +517,7 @@ static MicroCode mc[256] = {
   },
 
   {
-    .opcode = MOV_ADDR_DI, .instruction = "mov (%04x), di",  .addressingMode = DirectWord, .target = TX, // 0x42
+    .opcode = MOV_ADDR_DI, .instruction = "mov (%04x),di",  .addressingMode = DirectWord, .target = TX, // 0x42
     .steps = {
       { .action = MicroCode::XADDR, .src = TX, .target = MEMADDR, .opflags = SystemBus::Inc },
       { .action = MicroCode::XDATA, .src = Di, .target = MEM, .opflags = SystemBus::None },
@@ -595,7 +527,7 @@ static MicroCode mc[256] = {
   },
 
   {
-    .opcode = MOV_ADDR_CD, .instruction = "mov (%04x), cd",  .addressingMode = DirectWord, .target = TX, // 0x43
+    .opcode = MOV_ADDR_CD, .instruction = "mov (%04x),cd",  .addressingMode = DirectWord, .target = TX, // 0x43
     .steps = {
       { .action = MicroCode::XADDR, .src = TX, .target = MEMADDR, .opflags = SystemBus::Inc },
       { .action = MicroCode::XDATA, .src = GP_C, .target = MEM, .opflags = SystemBus::None },
@@ -605,7 +537,7 @@ static MicroCode mc[256] = {
   },
 
   {
-    .opcode = MOV_SI_CD_, .instruction = "mov (si), cd",  .addressingMode = Immediate, // 0x44
+    .opcode = MOV_SI_CD_, .instruction = "mov (si),cd",  .addressingMode = Immediate, // 0x44
     .steps = {
       { .action = MicroCode::XADDR, .src = Si, .target = MEMADDR, .opflags = SystemBus::Inc },
       { .action = MicroCode::XDATA, .src = GP_C, .target = MEM, .opflags = SystemBus::None },
@@ -615,7 +547,7 @@ static MicroCode mc[256] = {
   },
 
   {
-    .opcode = MOV_DI_CD_, .instruction = "mov (di), cd",  .addressingMode = Immediate, // 0x45
+    .opcode = MOV_DI_CD_, .instruction = "mov (di),cd",  .addressingMode = Immediate, // 0x45
     .steps = {
       { .action = MicroCode::XADDR, .src = Di, .target = MEMADDR, .opflags = SystemBus::Inc },
       { .action = MicroCode::XDATA, .src = GP_C, .target = MEM, .opflags = SystemBus::None },
@@ -624,36 +556,88 @@ static MicroCode mc[256] = {
     }
   },
 
-//  ADD_A_B         = 0x46,
-  {
-    .opcode = ADD_A_B, .instruction = "add a, b",  .addressingMode = Immediate, // 0x46
-    .steps = {
-      { .action = MicroCode::XDATA, .src = GP_A, .target = LHS, .opflags = SystemBus::None },
-      { .action = MicroCode::XDATA, .src = GP_B, .target = RHS, .opflags = ALU::ADD },
-      { .action = MicroCode::XDATA, .src = LHS, .target = GP_A, .opflags = SystemBus::Done },
-    }
-  },
+  // Arithmetic
 
-//  ADC_A_B         = 0x47,
-//  SUB_A_B         = 0x48,
-//  SBC_A_B         = 0x49,
-//  AND_A_B         = 0x4A,
-//  OR_A_B          = 0x4B,
-//  NOT_A           = 0x4C,
-//  XOR_A_B         = 0x4D,
-//  SHR_A           = 0x4E,
-//  SHL_A           = 0x4F,
+  // A Register
+  ALU_OP(ADD_A_B, "add a,b", GP_A, GP_B, ADD),
+  ALU_OP(ADC_A_B, "adc a,b", GP_A, GP_B, ADC),
+  ALU_OP(SUB_A_B, "sub a,b", GP_A, GP_B, SUB),
+  ALU_OP(SBB_A_B, "sbb a,b", GP_A, GP_B, SBB),
+  ALU_OP(AND_A_B, "and a,b", GP_A, GP_B, AND),
+  ALU_OP(OR_A_B, "or a,b", GP_A, GP_B, OR),
+  ALU_OP(XOR_A_B, "xor a,b", GP_A, GP_B, XOR),
+  ALU_UNARY_OP(NOT_A, "not a", GP_A, NOT),
+  ALU_UNARY_OP(SHL_A, "shl a", GP_A, SHL),
+  ALU_UNARY_OP(SHR_A, "shr a", GP_A, SHR),
 
+  ALU_OP(ADD_A_C, "add a,c", GP_A, GP_C, ADD),
+  ALU_OP(ADC_A_C, "adc a,c", GP_A, GP_C, ADC),
+  ALU_OP(SUB_A_C, "sub a,c", GP_A, GP_C, SUB),
+  ALU_OP(SBB_A_C, "sbb a,c", GP_A, GP_C, SBB),
+  ALU_OP(AND_A_C, "and a,c", GP_A, GP_C, AND),
+  ALU_OP(OR_A_C, "or a,c", GP_A, GP_C, OR),
+  ALU_OP(XOR_A_C, "xor a,c", GP_A, GP_C, XOR),
 
-  { /* 71 */ }, { /* 72 */ }, { /* 73 */ }, { /* 74 */ }, { /* 75 */ }, { /* 76 */ },
-  { /* 77 */ }, { /* 78 */ }, { /* 79 */ }, { /* 80 */ }, { /* 81 */ }, { /* 82 */ }, { /* 83 */ }, { /* 84 */ },
-  { /* 85 */ }, { /* 86 */ }, { /* 87 */ }, { /* 88 */ }, { /* 89 */ }, { /* 90 */ }, { /* 91 */ }, { /* 92 */ },
-  { /* 93 */ }, { /* 94 */ }, { /* 95 */ }, { /* 96 */ }, { /* 97 */ }, { /* 98 */ }, { /* 99 */ }, { /* 100 */ },
-  { /* 101 */ }, { /* 102 */ }, { /* 103 */ }, { /* 104 */ }, { /* 105 */ }, { /* 106 */ }, { /* 107 */ }, { /* 108 */ },
-  { /* 109 */ }, { /* 110 */ }, { /* 111 */ }, { /* 112 */ }, { /* 113 */ }, { /* 114 */ }, { /* 115 */ }, { /* 116 */ },
-  { /* 117 */ }, { /* 118 */ }, { /* 119 */ }, { /* 120 */ }, { /* 121 */ }, { /* 122 */ }, { /* 123 */ }, { /* 124 */ },
-  { /* 125 */ }, { /* 126 */ }, { /* 127 */ }, { /* 128 */ }, { /* 129 */ }, { /* 130 */ }, { /* 131 */ }, { /* 132 */ },
-  { /* 133 */ }, { /* 134 */ }, { /* 135 */ }, { /* 136 */ }, { /* 137 */ }, { /* 138 */ }, { /* 139 */ }, { /* 140 */ },
+  ALU_OP(ADD_A_D, "add a,d", GP_A, GP_D, ADD),
+  ALU_OP(ADC_A_D, "adc a,d", GP_A, GP_D, ADC),
+  ALU_OP(SUB_A_D, "sub a,d", GP_A, GP_D, SUB),
+  ALU_OP(SBB_A_D, "sbb a,d", GP_A, GP_D, SBB),
+  ALU_OP(AND_A_D, "and a,d", GP_A, GP_D, AND),
+  ALU_OP(OR_A_D, "or a,d", GP_A, GP_D, OR),
+  ALU_OP(XOR_A_D, "xor a,d", GP_A, GP_D, XOR),
+
+  // B Register
+  ALU_OP(ADD_B_C, "add b,c", GP_B, GP_C, ADD),
+  ALU_OP(ADC_B_C, "adc b,c", GP_B, GP_C, ADC),
+  ALU_OP(SUB_B_C, "sub b,c", GP_B, GP_C, SUB),
+  ALU_OP(SBB_B_C, "sbb b,c", GP_B, GP_C, SBB),
+  ALU_OP(AND_B_C, "and b,c", GP_B, GP_C, AND),
+  ALU_OP(OR_B_C, "or b,c", GP_B, GP_C, OR),
+  ALU_OP(XOR_B_C, "xor b,c", GP_B, GP_C, XOR),
+  ALU_UNARY_OP(NOT_B, "not b", GP_B, NOT),
+  ALU_UNARY_OP(SHL_B, "shl b", GP_B, SHL),
+  ALU_UNARY_OP(SHR_B, "shr b", GP_B, SHR),
+
+  ALU_OP(ADD_B_D, "add b,d", GP_B, GP_D, ADD),
+  ALU_OP(ADC_B_D, "adc b,d", GP_B, GP_D, ADC),
+  ALU_OP(SUB_B_D, "sub b,d", GP_B, GP_D, SUB),
+  ALU_OP(SBB_B_D, "sbb b,d", GP_B, GP_D, SBB),
+  ALU_OP(AND_B_D, "and b,d", GP_B, GP_D, AND),
+  ALU_OP(OR_B_D, "or b,d", GP_B, GP_D, OR),
+  ALU_OP(XOR_B_D, "xor b,d", GP_B, GP_D, XOR),
+  
+  // C Register
+  ALU_OP(ADD_C_D, "add c,d", GP_C, GP_D, ADD),
+  ALU_OP(ADC_C_D, "adc c,d", GP_C, GP_D, ADC),
+  ALU_OP(SUB_C_D, "sub c,d", GP_C, GP_D, SUB),
+  ALU_OP(SBB_C_D, "sbb c,d", GP_C, GP_D, SBB),
+  ALU_OP(AND_C_D, "and c,d", GP_C, GP_D, AND),
+  ALU_OP(OR_C_D, "or c,d", GP_C, GP_D, OR),
+  ALU_OP(XOR_C_D, "xor c,d", GP_C, GP_D, XOR),
+  ALU_UNARY_OP(NOT_C, "not c", GP_C, NOT),
+  ALU_UNARY_OP(SHL_C, "shl c", GP_C, SHL),
+  ALU_UNARY_OP(SHR_C, "shr c", GP_C, SHR),
+
+  // D Register
+  ALU_UNARY_OP(NOT_D, "not d", GP_D, NOT),
+  ALU_UNARY_OP(SHL_D, "shl d", GP_D, SHL),
+  ALU_UNARY_OP(SHR_D, "shr d", GP_D, SHR),
+
+  // Clear
+  ALU_UNARY_OP(CLR_A, "clr a", GP_A, CLR),
+  ALU_UNARY_OP(CLR_B, "clr b", GP_B, CLR),
+  ALU_UNARY_OP(CLR_C, "clr c", GP_C, CLR),
+  ALU_UNARY_OP(CLR_D, "clr d", GP_D, CLR),
+
+  // Swap
+  SWAP(SWP_A_B, "swp a,b", GP_A, GP_B),
+  SWAP(SWP_A_C, "swp a,c", GP_A, GP_C),
+  SWAP(SWP_A_D, "swp a,d", GP_A, GP_D),
+  SWAP(SWP_B_C, "swp b,c", GP_B, GP_C),
+  SWAP(SWP_B_D, "swp b,d", GP_B, GP_D),
+  SWAP(SWP_C_D, "swp c,d", GP_C, GP_D),
+
+  { /* 134 */ }, { /* 135 */ }, { /* 136 */ }, { /* 137 */ }, { /* 138 */ }, { /* 139 */ }, { /* 140 */ },
   { /* 141 */ }, { /* 142 */ }, { /* 143 */ }, { /* 144 */ }, { /* 145 */ }, { /* 146 */ }, { /* 147 */ }, { /* 148 */ },
   { /* 149 */ }, { /* 150 */ }, { /* 151 */ }, { /* 152 */ }, { /* 153 */ }, { /* 154 */ }, { /* 155 */ }, { /* 156 */ },
   { /* 157 */ }, { /* 158 */ }, { /* 159 */ }, { /* 160 */ }, { /* 161 */ }, { /* 162 */ }, { /* 163 */ }, { /* 164 */ },

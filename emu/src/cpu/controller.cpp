@@ -174,6 +174,12 @@ word MicroCodeRunner::constant() const {
 // -----------------------------------------------------------------------
 
 Controller::Controller(const MicroCode *mc) : Register(IR), microCode(mc) {
+//  for (int ix = 0; ix < 256; ix++) {
+//    auto m = mc[ix];
+//    if (m.opcode != ix) {
+//      std::cerr << std::hex << ix << ". " << m.instruction << ": " << std::hex << (int) m.opcode << std::endl;
+//    }
+//  }
 }
 
 std::string Controller::instruction() const {

@@ -46,7 +46,7 @@ add_library(emucomponents STATIC
         include/memory.h src/cpu/memory.cpp
         include/register.h src/cpu/register.cpp
         src/cpu/microcode.inc include/registers.h
-)
+        include/opcodes.h)
 
 add_executable(emu
         src/gui/main.cpp
@@ -80,7 +80,7 @@ add_executable(
     src/test/memory.cpp
     src/test/alu.cpp
     src/test/zzcontroller.cpp
-)
+        include/opcodes.h)
 
 target_link_libraries(emu_test emucomponents ${GTEST_LDFLAGS})
 target_compile_options(emu_test PUBLIC ${GTEST_CFLAGS})

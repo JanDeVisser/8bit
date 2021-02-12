@@ -62,16 +62,23 @@ SystemError ALU::onHighClock() {
       if (alu -> bus() -> isSet(SystemBus::C)) {
         ret |= 0x0001;
       }
-      return ret & 0x00FF;
+      return ret & 0x01FF;
     },
     /* 0xD SHR */ [](ALU *alu) {
+      bool carry = (alu -> getValue() & 0x01) != 0;
       word ret = alu -> getValue() >> 1;
       if (alu -> bus() -> isSet(SystemBus::C)) {
         ret |= 0x0080;
       }
-      return ret & 0x00FF;
+      ret &= 0x00FF;
+      if (carry) {
+        ret |= 0x0100;
+      }
+      return ret;
     },
-    /* 0xE */ nullptr,
+    /* 0xE CLR */ [](ALU *alu) {
+        return (word) 0;
+      },
     /* 0xF */ nullptr,
   };
 

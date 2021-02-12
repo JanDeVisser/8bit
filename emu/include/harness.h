@@ -27,6 +27,10 @@ public:
     m_components[component -> id()] = component;
   }
 
+  ConnectedComponent * component(int ix) {
+    return m_components[ix];
+  }
+
   int run(bool debug = false, int cycles = -1) {
     bool oldPrintStatus = printStatus;
     printStatus = debug;

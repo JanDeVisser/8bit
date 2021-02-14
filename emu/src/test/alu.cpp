@@ -189,7 +189,7 @@ TEST_F(ALUTest, sbbWithCarry) {
   ASSERT_EQ(lhs -> getValue(), 0x14);
   system -> cycle(false, true, 1, RHS, 0x3, 0x0F);
   ASSERT_EQ(alu -> getValue(), 0x0F);
-  ASSERT_EQ(lhs -> getValue(), 0x14 - 0x0F + 1);
+  ASSERT_EQ(lhs -> getValue(), 0x14 - 0x0F - 1);
   ASSERT_FALSE(system -> bus.isSet(SystemBus::Z));
   ASSERT_FALSE(system -> bus.isSet(SystemBus::C));
   ASSERT_FALSE(system -> bus.isSet(SystemBus::V));

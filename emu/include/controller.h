@@ -86,6 +86,7 @@ public:
   SystemError onLowClock() override;
 
   constexpr static int EV_STEPCHANGED = 0x02;
+  constexpr static int EV_AFTERINSTRUCTION = 0x03;
 
 };
 

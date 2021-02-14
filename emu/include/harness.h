@@ -34,7 +34,7 @@ public:
   int run(bool debug = false, int cycles = -1) {
     bool oldPrintStatus = printStatus;
     printStatus = debug;
-    status("Starting Condition", 0);
+//    status("Starting Condition", 0);
     error = NoError;
     int i = 0;
     do {
@@ -50,7 +50,7 @@ public:
   }
 
   SystemError cycles(int count) {
-    status("Starting Condition", 0);
+//    status("Starting Condition", 0);
     for (int i = 0; i < count; i++) {
       auto err = cycle(i);
       if (err != NoError) {
@@ -63,13 +63,13 @@ public:
   SystemError status(const std::string &msg, int num) {
     if (!printStatus) return NoError;
     std::cout << "Cycle " << num << " " << msg << std::endl;
-    auto error = bus.status();
-    if (error == NoError) {
+    auto err = bus.status();
+    if (err == NoError) {
       for (auto &component : m_components) {
         if (!component) continue;
-        error = component->status();
-        if (error != NoError) {
-          return error;
+        err = component->status();
+        if (err != NoError) {
+          return err;
         }
       }
     }
@@ -125,11 +125,11 @@ public:
     if (err == NoError) {
       err = onHighClock();
       if (err == NoError) {
-        status("After onHighClock", num);
+//        status("After onHighClock", num);
         err = onFallingClockEdge();
         if (err == NoError) {
           err = onLowClock();
-          status("After onLowClock", num);
+//          status("After onLowClock", num);
         }
       }
     }

@@ -55,6 +55,28 @@
     } \
   }
 
+#define ALU_WIDE_OP(op, instr, aluOp, aluOpWithCarry) \
+  { \
+    .opcode = op, .instruction = instr,  .addressingMode = Immediate, \
+    .steps = { \
+      { .action = MicroCode::XDATA, .src = GP_A, .target = LHS, .opflags = SystemBus::None }, \
+      { .action = MicroCode::XDATA, .src = GP_C, .target = RHS, .opflags = ALU:: aluOp }, \
+      { .action = MicroCode::XDATA, .src = LHS, .target = GP_A, .opflags = SystemBus::None }, \
+      { .action = MicroCode::XDATA, .src = GP_B, .target = LHS, .opflags = SystemBus::None }, \
+      { .action = MicroCode::XDATA, .src = GP_D, .target = RHS, .opflags = ALU:: aluOpWithCarry }, \
+      { .action = MicroCode::XDATA, .src = LHS, .target = GP_B, .opflags = SystemBus::Done }, \
+    } \
+  }
+
+#define CMP(op, instr, lhs, rhs) \
+  { \
+    .opcode = op, .instruction = instr,  .addressingMode = Immediate, \
+    .steps = { \
+      { .action = MicroCode::XDATA, .src = lhs, .target = LHS, .opflags = SystemBus::None }, \
+      { .action = MicroCode::XDATA, .src = rhs, .target = RHS, .opflags = ((byte) ALU::SUB) | SystemBus::Done }, \
+    } \
+  }
+
 
 static MicroCode mc[256] = {
   {
@@ -637,8 +659,63 @@ static MicroCode mc[256] = {
   SWAP(SWP_B_D, "swp b,d", GP_B, GP_D),
   SWAP(SWP_C_D, "swp c,d", GP_C, GP_D),
 
-  { /* 134 */ }, { /* 135 */ }, { /* 136 */ }, { /* 137 */ }, { /* 138 */ }, { /* 139 */ }, { /* 140 */ },
-  { /* 141 */ }, { /* 142 */ }, { /* 143 */ }, { /* 144 */ }, { /* 145 */ }, { /* 146 */ }, { /* 147 */ }, { /* 148 */ },
+  ALU_WIDE_OP(ADD_AB_CD, "add ab,cd", ADD, ADC),
+  ALU_WIDE_OP(ADC_AB_CD, "adc ab,cd", ADC, ADC),
+  ALU_WIDE_OP(SUB_AB_CD, "sub ab,cd", SUB, SBB),
+  ALU_WIDE_OP(SBB_AB_CD, "sbb ab,cd", SBB, SBB),
+
+  {
+    .opcode = JMP_ABS, .instruction = "jmp (%04x)",
+    .addressingMode = static_cast<AddressingMode>(AbsoluteWord | Done), .target = PC
+  },
+
+  {
+    .opcode = JNZ_ABS, .instruction = "jnz (%04x)",
+    .addressingMode = static_cast<AddressingMode>(AbsoluteWord | Done), .target = PC,
+    .condition = SystemBus::Z, .condition_op = MicroCode::Nand
+  },
+
+  {
+    .opcode = JC_ABS, .instruction = "jc (%04x)",
+    .addressingMode = static_cast<AddressingMode>(AbsoluteWord | Done), .target = PC,
+    .condition = SystemBus::C, .condition_op = MicroCode::And
+  },
+
+  {
+    .opcode = JV_ABS, .instruction = "jv (%04x)",
+    .addressingMode = static_cast<AddressingMode>(AbsoluteWord | Done), .target = PC,
+    .condition = SystemBus::V, .condition_op = MicroCode::And
+  },
+
+  {
+    .opcode = CALL_ABS, .instruction = "call (%04x)", .addressingMode = Immediate,
+    .steps = {
+      // Can't use AbsoluteWord addressing mode because need to push PC before
+      // reading destination address from memory.
+      { .action = MicroCode::XADDR, .src = PC, .target = MEMADDR, .opflags = SystemBus::Inc },
+      { .action = MicroCode::XDATA, .src = MEM, .target = TX, .opflags = SystemBus::None },
+      { .action = MicroCode::XADDR, .src = PC, .target = MEMADDR, .opflags = SystemBus::Inc },
+      { .action = MicroCode::XDATA, .src = MEM, .target = TX, .opflags = SystemBus::MSB },
+
+      // Push the return address:
+      PUSH_ADDR(PC, SystemBus::None)
+
+      // Load PC with the subroutine address:
+      { .action = MicroCode::XADDR, .src = TX, .target = MEMADDR, .opflags = SystemBus::Inc },
+      { .action = MicroCode::XDATA, .src = MEM, .target = PC, .opflags = SystemBus::None },
+      { .action = MicroCode::XADDR, .src = TX, .target = MEMADDR, .opflags = SystemBus::Inc },
+      { .action = MicroCode::XDATA, .src = MEM, .target = PC, .opflags = SystemBus::MSB | SystemBus::Done},
+
+    }
+  },
+
+  CMP(CMP_A_B, "cmp a,b", GP_A, GP_B),
+  CMP(CMP_A_C, "cmp a,c", GP_A, GP_C),
+  CMP(CMP_A_D, "cmp a,d", GP_A, GP_D),
+  CMP(CMP_B_C, "cmp b,c", GP_B, GP_C),
+  CMP(CMP_B_D, "cmp b,d", GP_B, GP_D),
+  CMP(CMP_C_D, "cmp c,d", GP_C, GP_D),
+
   { /* 149 */ }, { /* 150 */ }, { /* 151 */ }, { /* 152 */ }, { /* 153 */ }, { /* 154 */ }, { /* 155 */ }, { /* 156 */ },
   { /* 157 */ }, { /* 158 */ }, { /* 159 */ }, { /* 160 */ }, { /* 161 */ }, { /* 162 */ }, { /* 163 */ }, { /* 164 */ },
   { /* 165 */ }, { /* 166 */ }, { /* 167 */ }, { /* 168 */ }, { /* 169 */ }, { /* 170 */ }, { /* 171 */ }, { /* 172 */ },

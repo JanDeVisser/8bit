@@ -3,24 +3,25 @@
 
 #include "component.h"
 
+
 class SystemBus : public Component {
 private:
-  byte              data_bus = 0;
-  byte              addr_bus = 0;
-  byte              put = 0;
-  byte              get = 0;
-  byte              op = 0;
-  bool              _halt = true;
-  bool              _sus = true;
-  bool              _sack = true;
-  bool              _xdata = true;
-  bool              _xaddr = true;
-  bool              rst = false;
-  bool              _io = true;
+  byte    data_bus = 0;
+  byte    addr_bus = 0;
+  byte    put = 0;
+  byte    get = 0;
+  byte    op = 0;
+  bool    _halt = true;
+  bool    _sus = true;
+  bool    _sack = true;
+  bool    _xdata = true;
+  bool    _xaddr = true;
+  bool    rst = false;
+  bool    _io = true;
 
-  byte              m_flags;
+  byte    m_flags;
 
-  void              _reset();
+  void    _reset();
 
 public:
   enum ProcessorFlags {
@@ -64,6 +65,7 @@ public:
   void             clearFlags();
   byte             flags() const { return m_flags; }
   bool             isSet(ProcessorFlags) const;
+  std::string      flagsString() const;
 };
 
 class ConnectedComponent : public Component {

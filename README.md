@@ -80,6 +80,7 @@ OP0-3|Operation
 `0xB`|`NOT LHS`
 `0xC`|`SHL`
 `0xD`|`SHR`
+`0xE`|`CLR`
 ...|...
 
 

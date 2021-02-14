@@ -72,15 +72,24 @@ add_executable(emu_cmdline
 
 target_link_libraries(emu_cmdline emucomponents)
 
+add_executable(dump_instructions
+        src/dump_instructions.cpp include/alu.h include/opcodes.h
+)
+
+target_link_libraries(dump_instructions emucomponents)
+
 add_executable(
-    emu_test
-    src/test/clock.cpp
-    src/test/register.cpp
-    src/test/addressregister.cpp
-    src/test/memory.cpp
-    src/test/alu.cpp
-    src/test/zzcontroller.cpp
-        include/opcodes.h)
+        emu_test include/opcodes.h
+        src/test/clock.cpp include/clock.h
+        src/test/register.cpp include/register.h
+        src/test/addressregister.cpp include/addressregister.h
+        src/test/memory.cpp include/memory.h
+        src/test/alu.cpp  include/alu.h
+        src/test/controller.cpp include/controller.h src/test/controllertest.h
+        src/test/stack.cpp
+        src/test/arithmetic.cpp
+        src/test/jump.cpp
+)
 
 target_link_libraries(emu_test emucomponents ${GTEST_LDFLAGS})
 target_compile_options(emu_test PUBLIC ${GTEST_CFLAGS})

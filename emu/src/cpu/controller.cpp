@@ -246,7 +246,11 @@ SystemError Controller::onLowClock() {
         if (err != NoError) {
           return err;
         }
+        if (!bus() -> halt()) {
+          sendEvent(EV_AFTERINSTRUCTION);
+        }
       } else {
+        sendEvent(EV_AFTERINSTRUCTION);
         step = 0;
         delete m_runner;
         m_runner = nullptr;

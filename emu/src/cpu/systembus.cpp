@@ -78,11 +78,12 @@ void SystemBus::stop() {
 
 
 SystemError SystemBus::status() {
-  printf("DATA ADDR  GET PUT OP ACT\n");
-  printf(" %02x   %02x    %01x   %01x  %01x   %c\n",
+  printf("DATA ADDR  GET PUT OP ACT FLAG\n");
+  printf(" %02x   %02x    %01x   %01x  %01x   %c  %s\n",
          data_bus, addr_bus, get, put, op,
-         (_xdata) ? ((_xaddr) ? '_' : 'A') : 'D');
-  printf("=========================\n");
+         (_xdata) ? ((_xaddr) ? '_' : 'A') : 'D',
+         flagsString().c_str());
+  printf("==============================\n");
   return NoError;
 }
 
@@ -106,3 +107,11 @@ bool SystemBus::isSet(ProcessorFlags flag) const {
   return (m_flags & flag) != Clear;
 }
 
+std::string SystemBus::flagsString() const {
+  char ret[4];
+  ret[0] = (isSet(C)) ? 'C' : '-';
+  ret[1] = (isSet(Z)) ? 'Z' : '-';
+  ret[2] = (isSet(V)) ? 'V' : '-';
+  ret[3] = 0;
+  return ret;
+}

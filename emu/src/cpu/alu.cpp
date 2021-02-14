@@ -37,8 +37,8 @@ SystemError ALU::onHighClock() {
 
     /* 0x3 SBB */ [](ALU *alu) {
       return alu -> lhs() -> getValue()
-             + ~(alu -> getValue()) + 1
-             + (byte) (alu -> bus() -> isSet(SystemBus::C));
+             + ~(alu -> getValue() +
+             + (byte) (alu -> bus() -> isSet(SystemBus::C))) + 1;
     },
 
     /* 0x4 */ nullptr,

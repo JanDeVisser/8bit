@@ -159,6 +159,24 @@ enum OpCode {
   SWP_B_D         = 0x84,
   SWP_C_D         = 0x85,
 
+  ADD_AB_CD       = 0x86,
+  ADC_AB_CD       = 0x87,
+  SUB_AB_CD       = 0x88,
+  SBB_AB_CD       = 0x89,
+
+  JMP_ABS         = 0x8A,
+  JNZ_ABS         = 0x8B,
+  JC_ABS          = 0x8C,
+  JV_ABS          = 0x8D,
+  CALL_ABS        = 0x8E,
+
+  CMP_A_B         = 0x8F,
+  CMP_A_C         = 0x90,
+  CMP_A_D         = 0x91,
+  CMP_B_C         = 0x92,
+  CMP_B_D         = 0x93,
+  CMP_C_D         = 0x94,
+
   HLT             = 0xFF
 };
 

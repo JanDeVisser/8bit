@@ -5,12 +5,9 @@ ComponentView::ComponentView(ConnectedComponent *comp, QWidget *owner) : QWidget
   component -> setListener(this);
   layout = new QHBoxLayout;
   setLayout(layout);
-  name = new QLabel(component -> name().c_str());
-  name -> setFont(QFont("Impact Label Reversed", 16));
-  name -> setStyleSheet("QLabel { color : white; }");
-  value = new QLabel(QString("%1").arg(component -> getValue(), w(), 16, QLatin1Char('0')));
-  value -> setFont(QFont("DSEG7 Classic", 16));
-  value -> setStyleSheet("QLabel { color : red; }");
+  name = new ImpactLabel(component -> name().c_str());
+  name -> setFontSize(20);
+  value = new DSegLabel(QString("%1").arg(component -> getValue(), w(), 16, QLatin1Char('0')));
 
   layout->addWidget(name);
   layout->addWidget(value);
@@ -73,71 +70,74 @@ void MemoryView::componentEvent(Component *sender, int ev) {
 
 // -----------------------------------------------------------------------
 
-SystemBusView::SystemBusView(SystemBus *bus, QWidget *parent) : QWidget(parent) {
-  systemBus= bus;
-  systemBus -> setListener(this);
-  layout = new QHBoxLayout;
+SystemBusView::SystemBusView(SystemBus &bus, QWidget *parent)
+    : QWidget(parent), systemBus(bus) {
+  systemBus.setListener(this);
+  auto grid = new QGridLayout;
+  layout = grid;
   setLayout(layout);
-  auto *lbl = new QLabel("Data");
-  lbl -> setFont(QFont("Impact Label Reversed", 16));
-  lbl -> setStyleSheet("QLabel { color : white; }");
-  layout -> addWidget(lbl);
-  data = new QLabel(QString("%1").arg(bus -> readDataBus(), 2, 16, QLatin1Char('0')));
-  data -> setFont(QFont("DSEG7 Classic", 16));
-  data -> setStyleSheet("QLabel { color : red; }");
-  layout -> addWidget(data);
 
-  lbl = new QLabel("Address");
-  lbl -> setFont(QFont("Impact Label Reversed", 16));
-  lbl -> setStyleSheet("QLabel { color : white; }");
-  layout -> addWidget(lbl);
-  address = new QLabel(QString("%1").arg(bus -> readAddrBus(), 2, 16, QLatin1Char('0')));
-  address -> setFont(QFont("DSEG7 Classic", 16));
-  address -> setStyleSheet("QLabel { color : red; }");
-  layout -> addWidget(address);
-  layout -> addSpacing(20);
+  auto bp = bus.backplane();
 
-  lbl = new QLabel("From");
-  lbl -> setFont(QFont("Impact Label Reversed", 16));
-  lbl -> setStyleSheet("QLabel { color : white; }");
-  layout -> addWidget(lbl);
-  get = new QLabel(QString("%1").arg(bus -> getID(), 1, 16, QLatin1Char('0')));
-  get -> setFont(QFont("DSEG7 Classic", 16));
-  get -> setStyleSheet("QLabel { color : red; }");
-  layout -> addWidget(get);
-
-  lbl = new QLabel("To");
-  lbl -> setFont(QFont("Impact Label Reversed", 16));
-  lbl -> setStyleSheet("QLabel { color : white; }");
-  layout -> addWidget(lbl);
-  put = new QLabel(QString("%1").arg(bus -> putID(), 1, 16, QLatin1Char('0')));
-  put -> setFont(QFont("DSEG7 Classic", 16));
-  put -> setStyleSheet("QLabel { color : red; }");
-  layout -> addWidget(put);
-  layout -> addSpacing(20);
-
-#define LED_SIZE 16
+  auto *lbl = new ImpactLabel("Data");
+  grid->setColumnMinimumWidth(0, 120);
+  grid->setColumnMinimumWidth(1, 20);
+  grid -> addWidget(lbl, 0, 0, 1, 2, Qt::AlignHCenter);
+  data = new ByteWidget;
+  grid -> addWidget(data, 1, 0);
   xdata = new QLed();
   xdata -> setFixedSize(LED_SIZE, LED_SIZE);
-  layout -> addWidget(xdata);
+  grid -> addWidget(xdata, 1, 1, Qt::AlignHCenter);
+
+  lbl = new ImpactLabel("Address");
+  grid->setColumnMinimumWidth(2, 120);
+  grid->setColumnMinimumWidth(3, 20);
+  grid -> addWidget(lbl, 0, 2, 1, 2, Qt::AlignHCenter);
+  address = new ByteWidget;
+  grid -> addWidget(address, 1,2);
   xaddr = new QLed();
   xaddr -> setFixedSize(LED_SIZE, LED_SIZE);
-  layout -> addWidget(xaddr);
-  layout -> addSpacing(20);
+  grid -> addWidget(xaddr, 1, 3, Qt::AlignHCenter);
+//  layout -> addSpacing(20);
+
+  lbl = new ImpactLabel("From");
+  grid -> addWidget(lbl, 0, 4);
+  get = new RegisterNameLabel(systemBus);
+  grid -> addWidget(get, 1, 4);
+
+  lbl = new ImpactLabel("To");
+  grid -> addWidget(lbl, 0, 5);
+  put = new RegisterNameLabel(systemBus);
+  grid -> addWidget(put, 1, 5);
+//  layout -> addSpacing(20);
+
+//  layout -> addSpacing(20);
+  lbl = new ImpactLabel("Operation");
+  grid -> addWidget(lbl, 0, 6, Qt::AlignHCenter);
   op = new QLedArray(4);
   op -> setColourForAll(QLed::Green);
-  layout -> addWidget(op);
+  grid -> addWidget(op, 1, 6);
+
+  lbl = new ImpactLabel("Flags");
+  grid -> addWidget(lbl, 0, 7, Qt::AlignHCenter);
+  flags = new QLedArray(3);
+  flags -> setColourForAll(QLed::Green);
+  grid -> addWidget(flags, 1, 7);
+
 }
 
 void SystemBusView::componentEvent(Component *sender, int ev) {
   if (ev == Component::EV_VALUECHANGED) {
-    data->setText(QString("%1").arg(systemBus->readDataBus(), 2, 16, QLatin1Char('0')));
-    address->setText(QString("%1").arg(systemBus->readAddrBus(), 2, 16, QLatin1Char('0')));
-    get->setText(QString("%1").arg(systemBus->getID(), 1, 16, QLatin1Char('0')));
-    put->setText(QString("%1").arg(systemBus->putID(), 1, 16, QLatin1Char('0')));
-    xdata->setValue(!(systemBus->xdata()));
-    xaddr->setValue(!(systemBus->xaddr()));
-    op->setValue(systemBus->opflags());
+    data -> setValue(systemBus.readDataBus());
+    address -> setValue(systemBus.readAddrBus());
+
+    get -> setRegister(systemBus.getID());
+    put -> setRegister(systemBus.putID());
+
+    xdata->setValue(!(systemBus.xdata()));
+    xaddr->setValue(!(systemBus.xaddr()));
+    op->setValue(systemBus.opflags());
+    flags -> setValue(systemBus.flags());
   }
 }
 

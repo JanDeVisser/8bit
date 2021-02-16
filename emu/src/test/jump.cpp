@@ -24,9 +24,9 @@ void test_jump(Harness *system, byte opcode, bool ok) {
   // hlt            3 cycles
   // total         14
   auto cycles = system -> run();
-  ASSERT_EQ(system -> error, NoError);
+  ASSERT_EQ(system -> error(), NoError);
   ASSERT_EQ(cycles, (ok) ? 14 : 13);
-  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(system -> bus().halt(), false);
 }
 
 TEST_F(TESTNAME, jmp) {
@@ -35,37 +35,37 @@ TEST_F(TESTNAME, jmp) {
 }
 
 TEST_F(TESTNAME, jcCarrySet) {
-  system -> bus.setFlag(SystemBus::ProcessorFlags::C);
+  system -> bus().setFlag(SystemBus::ProcessorFlags::C);
   test_jump(system, JC, true);
   ASSERT_EQ(gp_a -> getValue(), 0x42);
 }
 
 TEST_F(TESTNAME, jcCarryNotSet) {
-  system -> bus.clearFlag(SystemBus::ProcessorFlags::C);
+  system -> bus().clearFlag(SystemBus::ProcessorFlags::C);
   test_jump(system, JC, false);
   ASSERT_EQ(gp_a -> getValue(), 0x37);
 }
 
 TEST_F(TESTNAME, jnzZeroNotSet) {
-  system -> bus.clearFlag(SystemBus::ProcessorFlags::Z);
+  system -> bus().clearFlag(SystemBus::ProcessorFlags::Z);
   test_jump(system, JNZ, true);
   ASSERT_EQ(gp_a -> getValue(), 0x42);
 }
 
 TEST_F(TESTNAME, jnzZeroSet) {
-  system -> bus.setFlag(SystemBus::ProcessorFlags::Z);
+  system -> bus().setFlag(SystemBus::ProcessorFlags::Z);
   test_jump(system, JNZ, false);
   ASSERT_EQ(gp_a -> getValue(), 0x37);
 }
 
 TEST_F(TESTNAME, jvCarrySet) {
-  system -> bus.setFlag(SystemBus::ProcessorFlags::V);
+  system -> bus().setFlag(SystemBus::ProcessorFlags::V);
   test_jump(system, JV, true);
   ASSERT_EQ(gp_a -> getValue(), 0x42);
 }
 
 TEST_F(TESTNAME, jvOverflowNotSet) {
-  system -> bus.clearFlag(SystemBus::ProcessorFlags::V);
+  system -> bus().clearFlag(SystemBus::ProcessorFlags::V);
   test_jump(system, JV, false);
   ASSERT_EQ(gp_a -> getValue(), 0x37);
 }
@@ -89,9 +89,9 @@ TEST_F(TESTNAME, call) {
   ASSERT_EQ(pc -> getValue(), START_VECTOR);
 
   auto cycles = system -> run();
-  ASSERT_EQ(system -> error, NoError);
+  ASSERT_EQ(system -> error(), NoError);
   ASSERT_EQ(cycles, 28);
-  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(system -> bus().halt(), false);
   ASSERT_EQ(gp_a -> getValue(), 0x42);
 }
 
@@ -115,9 +115,9 @@ TEST_F(TESTNAME, call_abs) {
   ASSERT_EQ(pc -> getValue(), START_VECTOR);
 
   auto cycles = system -> run();
-  ASSERT_EQ(system -> error, NoError);
+  ASSERT_EQ(system -> error(), NoError);
   ASSERT_EQ(cycles, 31);
-  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(system -> bus().halt(), false);
   ASSERT_EQ(gp_a -> getValue(), 0x42);
 }
 

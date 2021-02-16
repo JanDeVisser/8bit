@@ -1,10 +1,7 @@
-//
-// Created by jan on 2021-01-25.
-//
-
 #ifndef EMU_COMPONENT_H
 #define EMU_COMPONENT_H
 
+#include <functional>
 #include <iomanip>
 #include <iostream>
 
@@ -49,5 +46,8 @@ public:
   virtual SystemError  onFallingClockEdge() { return NoError; }
   virtual SystemError  onLowClock() { return NoError; }
 };
+
+typedef std::function<SystemError(Component *)> ComponentHandler;
+
 
 #endif //EMU_COMPONENT_H

@@ -1,22 +1,27 @@
 #ifndef EMU_BACKPLANE_H
 #define EMU_BACKPLANE_H
 
+#include <functional>
 #include <vector>
 #include "clock.h"
 #include "controller.h"
 #include "systembus.h"
 
 
-class BackPlane : public Component {
+class BackPlane : public Component, public ComponentContainer {
 private:
-  std::vector<ConnectedComponent *>  components;
+  enum ClockPhase {
+    SystemClock = 0x00,
+    IOClock = 0x01,
+  };
   Clock                              clock;
-  SystemBus                         *systemBus;
-  SystemError                        error = NoError;
+  ClockPhase                         m_phase = SystemClock;
 
-  SystemError     reportError();
+
+  SystemError   onClockEvent(const ComponentHandler&);
 
 protected:
+  SystemError   reportError() override;
 
 public:
                           BackPlane();
@@ -27,10 +32,6 @@ public:
   void                    setRunMode(Controller::RunMode runMode) const;
   Controller *            controller() const;
 
-  void                    insert(ConnectedComponent *);
-  ConnectedComponent *    componentByID(int id) const;
-  SystemBus *             bus() const { return systemBus; }
-
   SystemError             status() override;
   SystemError             reset() override;
   SystemError             onRisingClockEdge() override;
@@ -39,6 +40,7 @@ public:
   SystemError             onLowClock() override;
 
   void                    defaultSetup();
+
 };
 
 #endif //EMU_BACKPLANE_H

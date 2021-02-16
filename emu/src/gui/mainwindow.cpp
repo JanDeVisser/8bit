@@ -30,24 +30,24 @@ MainWindow::MainWindow(QWidget *parent)
 
   auto system = thread -> getSystem();
   auto busView = new SystemBusView(system -> bus());
-  layout -> addWidget(busView, 0, 0);
+  layout -> addWidget(busView, 0, 0, 1, 2);
   for (int r = 0; r < 4; r++) {
-    auto reg = system->componentByID(r);
+    auto reg = system->component(r);
     auto regView = new RegisterView(dynamic_cast<Register *>(reg), widget);
     layout->addWidget(regView, r / 2 + 1, r % 2);
   }
 
-  auto reg = system->componentByID(IR);
+  auto reg = system->component(IR);
   auto regView = new InstructionRegisterView(dynamic_cast<Controller *>(reg), widget);
   layout->addWidget(regView, 3, 0);
 
   for (int r = 0; r < 4; r++) {
-    auto addr_reg = system->componentByID(8+r);
+    auto addr_reg = system->component(8+r);
     auto addr_regView = new AddressRegisterView(dynamic_cast<AddressRegister *>(addr_reg), widget);
     layout->addWidget(addr_regView, r / 2 + 4, r % 2);
   }
 
-  auto mem = system->componentByID(MEMADDR);
+  auto mem = system->component(MEMADDR);
   auto memView = new MemoryView(dynamic_cast<Memory *>(mem), widget);
   layout->addWidget(memView, 6, 0);
 

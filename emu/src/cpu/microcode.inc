@@ -716,8 +716,44 @@ static MicroCode mc[256] = {
   CMP(CMP_B_D, "cmp b,d", GP_B, GP_D),
   CMP(CMP_C_D, "cmp c,d", GP_C, GP_D),
 
-  { /* 149 */ }, { /* 150 */ }, { /* 151 */ }, { /* 152 */ }, { /* 153 */ }, { /* 154 */ }, { /* 155 */ }, { /* 156 */ },
-  { /* 157 */ }, { /* 158 */ }, { /* 159 */ }, { /* 160 */ }, { /* 161 */ }, { /* 162 */ }, { /* 163 */ }, { /* 164 */ },
+  ALU_UNARY_OP(INC_A, "inc a", GP_A, INC),
+  ALU_UNARY_OP(INC_B, "inc b", GP_B, INC),
+  ALU_UNARY_OP(INC_C, "inc c", GP_C, INC),
+  ALU_UNARY_OP(INC_D, "inc d", GP_D, INC),
+  ALU_UNARY_OP(DEC_A, "dec a", GP_A, DEC),
+  ALU_UNARY_OP(DEC_B, "dec b", GP_B, DEC),
+  ALU_UNARY_OP(DEC_C, "dec c", GP_C, DEC),
+  ALU_UNARY_OP(DEC_D, "dec d", GP_D, DEC),
+
+  {
+    .opcode = INC_SI, .instruction = "inc si",  .addressingMode = Immediate,
+    .steps = {
+      { .action = MicroCode::XADDR, .src = Si, .target = TX, .opflags = SystemBus::Inc | SystemBus::Flags | SystemBus::Done },
+    }
+  },
+
+  {
+    .opcode = INC_DI, .instruction = "inc di",  .addressingMode = Immediate,
+    .steps = {
+      { .action = MicroCode::XADDR, .src = Di, .target = TX, .opflags = SystemBus::Inc | SystemBus::Flags | SystemBus::Done },
+    }
+  },
+
+  {
+    .opcode = DEC_SI, .instruction = "dec si",  .addressingMode = Immediate,
+    .steps = {
+      { .action = MicroCode::XADDR, .src = Si, .target = TX, .opflags = SystemBus::Dec | SystemBus::Flags | SystemBus::Done },
+    }
+  },
+
+  {
+    .opcode = DEC_DI, .instruction = "dec di",  .addressingMode = Immediate,
+    .steps = {
+      { .action = MicroCode::XADDR, .src = Di, .target = TX, .opflags = SystemBus::Dec | SystemBus::Flags | SystemBus::Done },
+    }
+  },
+
+  { /* 161 */ }, { /* 162 */ }, { /* 163 */ }, { /* 164 */ },
   { /* 165 */ }, { /* 166 */ }, { /* 167 */ }, { /* 168 */ }, { /* 169 */ }, { /* 170 */ }, { /* 171 */ }, { /* 172 */ },
   { /* 173 */ }, { /* 174 */ }, { /* 175 */ }, { /* 176 */ }, { /* 177 */ }, { /* 178 */ }, { /* 179 */ }, { /* 180 */ },
   { /* 181 */ }, { /* 182 */ }, { /* 183 */ }, { /* 184 */ }, { /* 185 */ }, { /* 186 */ }, { /* 187 */ }, { /* 188 */ },

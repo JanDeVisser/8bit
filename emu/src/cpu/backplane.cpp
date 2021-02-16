@@ -1,4 +1,5 @@
 #include "addressregister.h"
+#include "alu.h"
 #include "controller.h"
 #include "memory.h"
 #include "backplane.h"
@@ -6,14 +7,25 @@
 
 #include "microcode.inc"
 
-byte mem[] = { MOV_A_CONST, 0x42, MOV_B_A, 0xFF };
+byte mem[] = {
+  /* 0x0000 */ CLR_A,
+  /* 0x0001 */ CLR_B,
+  /* 0x0002 */ MOV_C_CONST, 0x01,
+  /* 0x0004 */ CLR_D,
+  /* 0x0005 */ MOV_SI_CONST, 0x17, 0x00,
+  /* 0x0008 */ ADD_AB_CD,
+  /* 0x0009 */ SWP_A_C,
+  /* 0x000A */ SWP_B_D,
+  /* 0x000B */ DEC_SI,
+  /* 0x000C */ JNZ, 0x08, 0x00,
+  /* 0x000F */ MOV_DI_CD,
+  /* 0x0010 */ HLT
+};
 MemImage image = {
-  .address = 0x00, .size = 0x04, .contents = mem
+  .address = 0x00, .size = 0x11, .contents = mem
 };
 
-BackPlane::BackPlane() : components(), clock(this, 0.001) {
-  systemBus = new SystemBus();
-  components.resize(16);
+BackPlane::BackPlane() : clock(this, 1.0) {
 }
 
 void BackPlane::defaultSetup() {
@@ -21,6 +33,9 @@ void BackPlane::defaultSetup() {
   insert(new Register(GP_B));             // 0x01
   insert(new Register(GP_C));             // 0x02
   insert(new Register(GP_D));             // 0x03
+  auto lhs = new Register(LHS);
+  insert(lhs);                         // 0x04
+  insert(new ALU(RHS, lhs)); // 0x05
   insert(new Controller(mc));             // 0x06
   insert(new AddressRegister(PC, "PC"));  // 0x08
   insert(new AddressRegister(SP, "SP"));  // 0x09
@@ -30,27 +45,18 @@ void BackPlane::defaultSetup() {
   insert(new Memory(0x0000, 0x8000, 0x8000, 0x8000, &image));    // 0x0F
 }
 
-void BackPlane::insert(ConnectedComponent *comp) {
-  comp->bus(systemBus);
-  components[comp->id()] = comp;
-}
-
-ConnectedComponent * BackPlane::componentByID(int id) const {
-  return (id == 0x07) ? components.at(0x0F) : components.at(id);
-}
-
 Controller::RunMode BackPlane::runMode() const {
-  auto c = dynamic_cast<Controller *>(componentByID(IR));
+  auto c = dynamic_cast<Controller *>(component(IR));
   return c -> runMode();
 }
 
 void BackPlane::setRunMode(Controller::RunMode runMode) const {
-  auto c = dynamic_cast<Controller *>(componentByID(IR));
+  auto c = dynamic_cast<Controller *>(component(IR));
   return c -> setRunMode(runMode);
 }
 
 Controller * BackPlane::controller() const {
-  return dynamic_cast<Controller *>(componentByID(IR));
+  return dynamic_cast<Controller *>(component(IR));
 }
 
 void BackPlane::run() {
@@ -61,104 +67,87 @@ void BackPlane::run() {
 }
 
 SystemError BackPlane::reportError() {
-  if (error == NoError) {
+  if (error() == NoError) {
     return NoError;
   }
-  std::cout << "EXCEPTION " << error << std::endl;
+  std::cout << "EXCEPTION " << error() << std::endl;
   clock.stop();
-  return error;
+  return error();
+}
+
+SystemError BackPlane::onClockEvent(const ComponentHandler& handler) {
+  if (error() != NoError) {
+    return error();
+  }
+  switch (m_phase) {
+    case SystemClock:
+      return forAllComponents(handler);
+    case IOClock:
+      // xx
+    default:
+      return NoError;
+  }
 }
 
 SystemError BackPlane::reset() {
-  if (error != NoError) {
-    return error;
+  if (error() != NoError) {
+    return error();
   }
-  systemBus -> reset();
-  for (auto & component : components) {
-    if (!component) continue;
-    error = component -> reset();
-    if (error != NoError) {
-      return reportError();
-    }
+  error(bus().reset());
+  if (error() == NoError) {
+    forAllComponents([](Component *c) -> SystemError {
+      return (c) ? c -> reset() : NoError;
+    });
   }
   return NoError;
 }
 
 SystemError BackPlane::status() {
-  error = systemBus -> status();
-  if (error == NoError) {
-    for (auto &component : components) {
-      if (!component) continue;
-      error = component->status();
-      if (error != NoError) {
-        return reportError();
-      }
-    }
+  error(bus().status());
+  if (error() == NoError) {
+    forAllComponents([](Component *c) -> SystemError {
+      return (c) ? c -> status() : NoError;
+    });
   }
   return NoError;
 }
 
 SystemError BackPlane::onRisingClockEdge() {
-  if (error != NoError) {
-    return error;
+  if (error() != NoError) {
+    return error();
   }
-  status();
-  for (auto & component : components) {
-    if (!component) continue;
-    error = component -> onRisingClockEdge();
-    if (error != NoError) {
-      return reportError();
-    }
+  if ((m_phase == SystemClock) && ((error(status())) != NoError)) {
+    return reportError();
   }
-  return NoError;
+  return onClockEvent([](Component *c) -> SystemError {
+      return (c) ? c -> onRisingClockEdge() : NoError;
+    });
 }
 
+
 SystemError BackPlane::onHighClock() {
-  if (error != NoError) {
-    return error;
-  }
-  for (auto & component : components) {
-    if (!component) continue;
-    error = component -> onHighClock();
-    if (error != NoError) {
-      return reportError();
-    }
-  }
-  if (!systemBus -> halt()) {
+  error(onClockEvent([](Component *c) -> SystemError {
+      return (c) ? c -> onHighClock() : NoError;
+    }));
+  if ((error() == NoError) && !bus().halt()) {
     stop();
   }
-  return NoError;
+  return error();
 }
 
 SystemError BackPlane::onFallingClockEdge() {
-  if (error != NoError) {
-    return error;
-  }
-  for (auto & component : components) {
-    if (!component) continue;
-    error = component -> onFallingClockEdge();
-    if (error != NoError) {
-      return reportError();
-    }
-  }
-  return NoError;
+  return onClockEvent([](Component *c) -> SystemError {
+    return (c) ? c -> onFallingClockEdge() : NoError;
+  });
 }
 
 SystemError BackPlane::onLowClock() {
-  if (error != NoError) {
-    return error;
-  }
-  for (auto & component : components) {
-    if (!component) continue;
-    error = component -> onLowClock();
-    if (error != NoError) {
-      return reportError();
-    }
-  }
-  if (!systemBus -> halt()) {
+  error(onClockEvent([](Component *c) -> SystemError {
+    return (c) ? c -> onLowClock() : NoError;
+  }));
+  if ((error() == NoError) && !bus().halt()) {
     stop();
   }
-  return NoError;
+  m_phase = (m_phase == SystemClock) ? IOClock : SystemClock;
+  return error();
 }
-
-

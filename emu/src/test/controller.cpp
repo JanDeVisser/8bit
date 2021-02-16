@@ -15,7 +15,7 @@ TEST_F(TESTNAME, movADirect) {
 
   // mov a, #42 takes 4 cycles. hlt takes 3.
   ASSERT_EQ(system -> run(), 7);
-  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(system -> bus().halt(), false);
   ASSERT_EQ(gp_a -> getValue(), 0x42);
 }
 
@@ -27,7 +27,7 @@ TEST_F(TESTNAME, movADirectUsingRun) {
   ASSERT_EQ(pc -> getValue(), START_VECTOR);
 
   ASSERT_EQ(system -> run(), 7);
-  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(system -> bus().halt(), false);
   ASSERT_EQ(gp_a -> getValue(), 0x42);
 }
 
@@ -46,7 +46,7 @@ TEST_F(TESTNAME, movAAbsolute) {
 
   // mov a, (8004) takes 8 cycles. hlt takes 3.
   system -> cycles(11);
-  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(system -> bus().halt(), false);
   ASSERT_EQ(gp_a -> getValue(), 0x42);
 }
 
@@ -70,7 +70,7 @@ TEST_F(TESTNAME, movAToOtherGPRs) {
   // hlt         3 cycles
   // Total       16 cycles
   ASSERT_EQ(system -> run(), 16);
-  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(system -> bus().halt(), false);
   ASSERT_EQ(gp_a -> getValue(), 0x42);
   ASSERT_EQ(gp_b -> getValue(), 0x42);
   ASSERT_EQ(gp_c -> getValue(), 0x42);
@@ -93,7 +93,7 @@ TEST_F(TESTNAME, movBToOtherGPRs) {
   ASSERT_EQ(pc -> getValue(), START_VECTOR);
 
   ASSERT_EQ(system -> run(), 16);
-  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(system -> bus().halt(), false);
   ASSERT_EQ(gp_b -> getValue(), 0x42);
   ASSERT_EQ(gp_a -> getValue(), 0x42);
   ASSERT_EQ(gp_c -> getValue(), 0x42);
@@ -116,7 +116,7 @@ TEST_F(TESTNAME, movCToOtherGPRs) {
   ASSERT_EQ(pc -> getValue(), START_VECTOR);
 
   ASSERT_EQ(system -> run(), 16);
-  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(system -> bus().halt(), false);
   ASSERT_EQ(gp_c -> getValue(), 0x42);
   ASSERT_EQ(gp_a -> getValue(), 0x42);
   ASSERT_EQ(gp_b -> getValue(), 0x42);
@@ -139,7 +139,7 @@ TEST_F(TESTNAME, movDToOtherGPRs) {
   ASSERT_EQ(pc -> getValue(), START_VECTOR);
 
   ASSERT_EQ(system -> run(), 16);
-  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(system -> bus().halt(), false);
   ASSERT_EQ(gp_d -> getValue(), 0x42);
   ASSERT_EQ(gp_a -> getValue(), 0x42);
   ASSERT_EQ(gp_b -> getValue(), 0x42);
@@ -165,7 +165,7 @@ TEST_F(TESTNAME, movXAbsolute) {
   // mov x, (800D) takes 8 cycles x4
   // hlt takes 3.
   ASSERT_EQ(system -> run(),35);
-  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(system -> bus().halt(), false);
   ASSERT_EQ(gp_a -> getValue(), 0x42);
   ASSERT_EQ(gp_b -> getValue(), 0x42);
   ASSERT_EQ(gp_c -> getValue(), 0x42);
@@ -189,7 +189,7 @@ TEST_F(TESTNAME, movAddrRegsDirect) {
   // mov si, #3742 takes 6 cycles x3.
   // hlt takes 3.
   ASSERT_EQ(system -> run(), 21);
-  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(system -> bus().halt(), false);
   ASSERT_EQ(si -> getValue(), 0x3742);
   ASSERT_EQ(di -> getValue(), 0x3742);
   ASSERT_EQ(sp -> getValue(), 0x3742);
@@ -213,7 +213,7 @@ TEST_F(TESTNAME, movAddrRegsAbsolute) {
   // mov si, (8004) takes 10 cycles x3
   // hlt takes 3.
   ASSERT_EQ(system -> run(), 33);
-  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(system -> bus().halt(), false);
   ASSERT_EQ(si -> getValue(), 0x3742);
   ASSERT_EQ(di -> getValue(), 0x3742);
   ASSERT_EQ(sp -> getValue(), 0x3742);
@@ -241,7 +241,7 @@ TEST_F(TESTNAME, movAddrRegsFromOtherRegs) {
   // hlt            3 cycles
   // total          22
   ASSERT_EQ(system -> run(), 22);
-  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(system -> bus().halt(), false);
   ASSERT_EQ(si -> getValue(), 0x3742);
   ASSERT_EQ(di -> getValue(), 0x3742);
   ASSERT_EQ(sp -> getValue(), 0x3742);
@@ -272,7 +272,7 @@ TEST_F(TESTNAME, movGPRegsFromSI) {
   // hlt            3 cycles
   // total          17
   ASSERT_EQ(system -> run(), 25);
-  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(system -> bus().halt(), false);
   ASSERT_EQ(si -> getValue(), 0x800C);
   ASSERT_EQ(gp_a -> getValue(), 0x42);
   ASSERT_EQ(gp_b -> getValue(), 0x43);
@@ -305,7 +305,7 @@ TEST_F(TESTNAME, movGPRegsFromDI) {
   // hlt            3 cycles
   // total          17
   ASSERT_EQ(system -> run(), 25);
-  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(system -> bus().halt(), false);
   ASSERT_EQ(di -> getValue(), 0x800C);
   ASSERT_EQ(gp_a -> getValue(), 0x42);
   ASSERT_EQ(gp_b -> getValue(), 0x43);
@@ -340,7 +340,7 @@ TEST_F(TESTNAME, movDIFromSI) {
   // hlt            3 cycles
   // total          39
   ASSERT_EQ(system -> run(), 39);
-  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(system -> bus().halt(), false);
   ASSERT_EQ(si -> getValue(), 0x800F);
   ASSERT_EQ(di -> getValue(), 0x2004);
   ASSERT_EQ((*mem)[0x2000], 0x42);
@@ -350,19 +350,19 @@ TEST_F(TESTNAME, movDIFromSI) {
 }
 
 TEST_F(TESTNAME, busFlagManip) {
-  system -> bus.clearFlags();
-  system -> bus.setFlag(SystemBus::ProcessorFlags::C);
-  system -> bus.setFlag(SystemBus::ProcessorFlags::Z);
+  system -> bus().clearFlags();
+  system -> bus().setFlag(SystemBus::ProcessorFlags::C);
+  system -> bus().setFlag(SystemBus::ProcessorFlags::Z);
 
-  ASSERT_TRUE(system -> bus.isSet(SystemBus::ProcessorFlags::C));
-  ASSERT_TRUE(system -> bus.isSet(SystemBus::ProcessorFlags::Z));
-  ASSERT_FALSE(system -> bus.isSet(SystemBus::ProcessorFlags::V));
+  ASSERT_TRUE(system -> bus().isSet(SystemBus::ProcessorFlags::C));
+  ASSERT_TRUE(system -> bus().isSet(SystemBus::ProcessorFlags::Z));
+  ASSERT_FALSE(system -> bus().isSet(SystemBus::ProcessorFlags::V));
 
-  system -> bus.clearFlag(SystemBus::ProcessorFlags::C);
+  system -> bus().clearFlag(SystemBus::ProcessorFlags::C);
 
-  ASSERT_FALSE(system -> bus.isSet(SystemBus::ProcessorFlags::C));
-  ASSERT_TRUE(system -> bus.isSet(SystemBus::ProcessorFlags::Z));
-  ASSERT_FALSE(system -> bus.isSet(SystemBus::ProcessorFlags::V));
+  ASSERT_FALSE(system -> bus().isSet(SystemBus::ProcessorFlags::C));
+  ASSERT_TRUE(system -> bus().isSet(SystemBus::ProcessorFlags::Z));
+  ASSERT_FALSE(system -> bus().isSet(SystemBus::ProcessorFlags::V));
 }
 
 // MOV_ADDR_A      = 0x39,
@@ -394,9 +394,9 @@ TEST_F(TESTNAME, movGPRegToMem) {
   // hlt            3 cycles      3
   // total                       51
   auto cycles = system -> run();
-  ASSERT_EQ(system -> error, NoError);
+  ASSERT_EQ(system -> error(), NoError);
   ASSERT_EQ(cycles, 51);
-  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(system -> bus().halt(), false);
   ASSERT_EQ((*mem)[0x2000], 0x42);
   ASSERT_EQ((*mem)[0x2001], 0x43);
   ASSERT_EQ((*mem)[0x2002], 0x44);
@@ -418,7 +418,7 @@ TEST_F(TESTNAME, cantMovGPRegToROM) {
 
   ASSERT_NE((*mem)[0x8006], 0x42);
   system -> run();
-  ASSERT_EQ(system -> error, ProtectedMemory);
+  ASSERT_EQ(system -> error(), ProtectedMemory);
   ASSERT_NE((*mem)[0x8006], 0x42);
 }
 
@@ -436,7 +436,7 @@ TEST_F(TESTNAME, cantMovGPRegToUnmappedMem) {
   ASSERT_EQ(pc -> getValue(), START_VECTOR);
 
   system -> run();
-  ASSERT_EQ(system -> error, ProtectedMemory);
+  ASSERT_EQ(system -> error(), ProtectedMemory);
 }
 
 const byte gp_to_di_indirect[] = {
@@ -465,9 +465,9 @@ TEST_F(TESTNAME, movGPRegToDiIndirect) {
   // hlt            3 cycles      3
   // total                       41
   auto cycles = system -> run();
-  ASSERT_EQ(system -> error, NoError);
+  ASSERT_EQ(system -> error(), NoError);
   ASSERT_EQ(cycles, 41);
-  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(system -> bus().halt(), false);
   ASSERT_EQ((*mem)[0x2000], 0x42);
   ASSERT_EQ((*mem)[0x2001], 0x43);
   ASSERT_EQ((*mem)[0x2002], 0x44);
@@ -498,9 +498,9 @@ TEST_F(TESTNAME, movAddrRegToMem) {
   // hlt             3             3
   // total                        53
   auto cycles = system -> run();
-  ASSERT_EQ(system -> error, NoError);
+  ASSERT_EQ(system -> error(), NoError);
   ASSERT_EQ(cycles, 53);
-  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(system -> bus().halt(), false);
   ASSERT_EQ((*mem)[0x2000], 0x22);
   ASSERT_EQ((*mem)[0x2001], 0x11);
   ASSERT_EQ((*mem)[0x2002], 0x44);
@@ -532,9 +532,9 @@ TEST_F(TESTNAME, movCDRegToMemViaSiDiIndirect) {
   // hlt             3             3
   // total                        35
   auto cycles = system -> run();
-  ASSERT_EQ(system -> error, NoError);
+  ASSERT_EQ(system -> error(), NoError);
   ASSERT_EQ(cycles, 35);
-  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(system -> bus().halt(), false);
   ASSERT_EQ((*mem)[0x2000], 0x42);
   ASSERT_EQ((*mem)[0x2001], 0x37);
   ASSERT_EQ((*mem)[0x2010], 0x42);
@@ -555,9 +555,9 @@ TEST_F(TESTNAME, swpAB) {
   ASSERT_EQ(pc -> getValue(), RAM_START);
 
   auto cycles = system -> run();
-  ASSERT_EQ(system -> error, NoError);
+  ASSERT_EQ(system -> error(), NoError);
   ASSERT_EQ(cycles, 16);
-  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(system -> bus().halt(), false);
   ASSERT_EQ(gp_a -> getValue(),  0xF8);
   ASSERT_EQ(gp_b -> getValue(),  0x1F);
 }
@@ -572,9 +572,9 @@ TEST_F(TESTNAME, swpAC) {
   ASSERT_EQ(pc -> getValue(), RAM_START);
 
   auto cycles = system -> run();
-  ASSERT_EQ(system -> error, NoError);
+  ASSERT_EQ(system -> error(), NoError);
   ASSERT_EQ(cycles, 16);
-  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(system -> bus().halt(), false);
   ASSERT_EQ(gp_a -> getValue(),  0xF8);
   ASSERT_EQ(gp_c -> getValue(),  0x1F);
 }
@@ -589,9 +589,9 @@ TEST_F(TESTNAME, swpAD) {
   ASSERT_EQ(pc -> getValue(), RAM_START);
 
   auto cycles = system -> run();
-  ASSERT_EQ(system -> error, NoError);
+  ASSERT_EQ(system -> error(), NoError);
   ASSERT_EQ(cycles, 16);
-  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(system -> bus().halt(), false);
   ASSERT_EQ(gp_a -> getValue(),  0xF8);
   ASSERT_EQ(gp_d -> getValue(),  0x1F);
 }
@@ -607,9 +607,9 @@ TEST_F(TESTNAME, swpBC) {
   ASSERT_EQ(pc -> getValue(), RAM_START);
 
   auto cycles = system -> run();
-  ASSERT_EQ(system -> error, NoError);
+  ASSERT_EQ(system -> error(), NoError);
   ASSERT_EQ(cycles, 16);
-  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(system -> bus().halt(), false);
   ASSERT_EQ(gp_b -> getValue(),  0xF8);
   ASSERT_EQ(gp_c -> getValue(),  0x1F);
 }
@@ -625,9 +625,9 @@ TEST_F(TESTNAME, swpBD) {
   ASSERT_EQ(pc -> getValue(), RAM_START);
 
   auto cycles = system -> run();
-  ASSERT_EQ(system -> error, NoError);
+  ASSERT_EQ(system -> error(), NoError);
   ASSERT_EQ(cycles, 16);
-  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(system -> bus().halt(), false);
   ASSERT_EQ(gp_b -> getValue(),  0xF8);
   ASSERT_EQ(gp_d -> getValue(),  0x1F);
 }
@@ -643,9 +643,9 @@ TEST_F(TESTNAME, swpCD) {
   ASSERT_EQ(pc -> getValue(), RAM_START);
 
   auto cycles = system -> run();
-  ASSERT_EQ(system -> error, NoError);
+  ASSERT_EQ(system -> error(), NoError);
   ASSERT_EQ(cycles, 16);
-  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(system -> bus().halt(), false);
   ASSERT_EQ(gp_c -> getValue(),  0xF8);
   ASSERT_EQ(gp_d -> getValue(),  0x1F);
 }

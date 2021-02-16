@@ -21,6 +21,8 @@ public:
     ADC = 0x01,
     SUB = 0x02,
     SBB = 0x03,
+    INC = 0x04,
+    DEC = 0x05,
     AND = 0x08,
     OR = 0x09,
     XOR = 0x0A,
@@ -33,6 +35,7 @@ public:
   ALU(int, Register *lhs);
   Register * lhs() const { return m_lhs; }
 
+  SystemError status() override;
   SystemError onHighClock() override;
 };
 

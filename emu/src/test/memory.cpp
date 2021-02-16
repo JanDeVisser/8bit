@@ -62,7 +62,7 @@ TEST_F(MemoryTest, readRAM) {
   ASSERT_EQ(mem -> getValue(), 0x0001);
   err = system -> cycle(false, true, Memory::MEM_ID, 1, 0);
   ASSERT_EQ(err, NoError);
-  ASSERT_EQ(system->bus.readDataBus(), 0x37);
+  ASSERT_EQ(system->bus().readDataBus(), 0x37);
 }
 
 TEST_F(MemoryTest, writeRAM) {
@@ -71,7 +71,7 @@ TEST_F(MemoryTest, writeRAM) {
   ASSERT_EQ(mem -> getValue(), 0x0001);
   err = system -> cycle(false, true, 1, Memory::MEM_ID, 0, 0x55);
   ASSERT_EQ(err, NoError);
-  ASSERT_EQ(system->bus.readDataBus(), 0x55);
+  ASSERT_EQ(system->bus().readDataBus(), 0x55);
 }
 
 TEST_F(MemoryTest, readROM) {
@@ -80,7 +80,7 @@ TEST_F(MemoryTest, readROM) {
   ASSERT_EQ(mem -> getValue(), 0x8001);
   err = system -> cycle(false, true, Memory::MEM_ID, 1, 0);
   ASSERT_EQ(err, NoError);
-  ASSERT_EQ(system->bus.readDataBus(), 0x77);
+  ASSERT_EQ(system->bus().readDataBus(), 0x77);
 }
 
 TEST_F(MemoryTest, writeROM) {

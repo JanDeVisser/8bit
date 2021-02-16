@@ -50,20 +50,20 @@ TEST_F(AddressRegisterTest, canPutAddr) {
 TEST_F(AddressRegisterTest, canGetAddr) {
   reg -> setValue(0x4237);
   system -> cycle(true, false, REGID, 1, 0, 0x72);
-  ASSERT_EQ(system->bus.readDataBus(), 0x37);
-  ASSERT_EQ(system->bus.readAddrBus(), 0x42);
+  ASSERT_EQ(system -> bus().readDataBus(), 0x37);
+  ASSERT_EQ(system -> bus().readAddrBus(), 0x42);
 }
 
 TEST_F(AddressRegisterTest, canGetLSB) {
   reg -> setValue(0x4237);
   system -> cycle(false, true, REGID, 1, 0, 0x72);
-  ASSERT_EQ(system->bus.readDataBus(), 0x37);
+  ASSERT_EQ(system -> bus().readDataBus(), 0x37);
 }
 
 TEST_F(AddressRegisterTest, canGetMSB) {
   reg -> setValue(0x4237);
   system -> cycle(false, true, REGID, 1, SystemBus::MSB, 0x72);
-  ASSERT_EQ(system->bus.readDataBus(), 0x42);
+  ASSERT_EQ(system->bus().readDataBus(), 0x42);
 }
 
 TEST_F(AddressRegisterTest, dontPutWhenOtherRegAddressed) {
@@ -75,5 +75,5 @@ TEST_F(AddressRegisterTest, dontPutWhenOtherRegAddressed) {
 TEST_F(AddressRegisterTest, dontGetWhenOtherRegAddressed) {
   reg -> setValue(0x5555);
   system -> cycle(false, true, 2, 1, 0, 0x37);
-  ASSERT_EQ(system->bus.readDataBus(), 0x37);
+  ASSERT_EQ(system->bus().readDataBus(), 0x37);
 }

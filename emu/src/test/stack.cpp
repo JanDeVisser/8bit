@@ -21,7 +21,7 @@ TEST_F(TESTNAME, pushA) {
   // hlt            3 cycles
   // total          17
   ASSERT_EQ(system -> run(), 17);
-  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(system -> bus().halt(), false);
   ASSERT_EQ(gp_a -> getValue(), 0x42);
   ASSERT_EQ(sp -> getValue(), 0x2001);
   ASSERT_EQ((*mem)[0x2000], 0x42);
@@ -51,7 +51,7 @@ TEST_F(TESTNAME, pushPopA) {
   // hlt            3 cycles
   // total          25
   ASSERT_EQ(system -> run(), 25);
-  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(system -> bus().halt(), false);
   ASSERT_EQ(gp_a -> getValue(), 0x42);
   ASSERT_EQ(sp -> getValue(), 0x2000);
   ASSERT_EQ((*mem)[0x2000], 0x42);
@@ -93,7 +93,7 @@ TEST_F(TESTNAME, pushPopGPRegs) {
   // hlt            3 cycles      3
   // total                       73
   ASSERT_EQ(system -> run(), 73);
-  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(system -> bus().halt(), false);
   ASSERT_EQ(gp_a -> getValue(), 0x42);
   ASSERT_EQ(gp_b -> getValue(), 0x43);
   ASSERT_EQ(gp_c -> getValue(), 0x44);
@@ -132,9 +132,9 @@ TEST_F(TESTNAME, pushPopAddrRegs) {
   // hlt            3 cycles      3
   // total                       57
   auto cycles = system -> run();
-  ASSERT_EQ(system -> error, NoError);
+  ASSERT_EQ(system -> error(), NoError);
   ASSERT_EQ(cycles, 57);
-  ASSERT_EQ(system -> bus.halt(), false);
+  ASSERT_EQ(system -> bus().halt(), false);
   ASSERT_EQ(si -> getValue(), 0x1234);
   ASSERT_EQ(di -> getValue(), 0x5678);
   ASSERT_EQ(sp -> getValue(), 0x2000);

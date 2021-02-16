@@ -177,6 +177,20 @@ enum OpCode {
   CMP_B_D         = 0x93,
   CMP_C_D         = 0x94,
 
+  INC_A           = 0x95,
+  INC_B           = 0x96,
+  INC_C           = 0x97,
+  INC_D           = 0x98,
+  DEC_A           = 0x99,
+  DEC_B           = 0x9A,
+  DEC_C           = 0x9B,
+  DEC_D           = 0x9C,
+
+  INC_SI          = 0x9D,
+  INC_DI          = 0x9E,
+  DEC_SI          = 0x9F,
+  DEC_DI          = 0xA0,
+
   HLT             = 0xFF
 };
 

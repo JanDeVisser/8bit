@@ -1,5 +1,9 @@
 #include "systembus.h"
 
+SystemBus::SystemBus(ComponentContainer &bp) : m_backplane(bp) {
+  _reset();
+}
+
 void SystemBus::_reset() {
   _xdata = true;
   _xaddr = true;

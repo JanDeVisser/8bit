@@ -7,6 +7,15 @@
 
 #include "component.h"
 
+enum ClockCycleEvent {
+  RisingEdge,
+  High,
+  FallingEdge,
+  Low,
+};
+
+
+
 class ClockListener {
 public:
   enum ClockEvent {

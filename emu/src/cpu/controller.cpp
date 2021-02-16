@@ -174,12 +174,6 @@ word MicroCodeRunner::constant() const {
 // -----------------------------------------------------------------------
 
 Controller::Controller(const MicroCode *mc) : Register(IR), microCode(mc) {
-//  for (int ix = 0; ix < 256; ix++) {
-//    auto m = mc[ix];
-//    if (m.opcode != ix) {
-//      std::cerr << std::hex << ix << ". " << m.instruction << ": " << std::hex << (int) m.opcode << std::endl;
-//    }
-//  }
 }
 
 std::string Controller::instruction() const {
@@ -232,16 +226,19 @@ SystemError Controller::onLowClock() {
       break;
     case 2:
       mc = microCode + getValue();
-      if (mc->opcode != getValue()) {
+      if (!mc -> opcode) {
+        m_runner = nullptr;
+      } else if (mc->opcode != getValue()) {
         std::cerr << "Microcode mismatch for opcode " << std::hex << getValue()
                   << ": 'opcode' field contains " << std::hex << mc->opcode
                   << std::endl;
         return InvalidMicroCode;
+      } else {
+        m_runner = new MicroCodeRunner(bus(), mc);
       }
-      m_runner = new MicroCodeRunner(bus(), mc);
       // fall through:
     default:
-      if (m_runner -> hasStep(step - 2)) {
+      if (m_runner && m_runner -> hasStep(step - 2)) {
         auto err = m_runner->executeNextStep(step - 2);
         if (err != NoError) {
           return err;

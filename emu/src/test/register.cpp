@@ -30,7 +30,7 @@ TEST_F(RegisterTest, canPut) {
 TEST_F(RegisterTest, canGet) {
   reg -> setValue(0x42);
   system -> cycle(false, true, REGID, 1, 0, 0x37);
-  ASSERT_EQ(system->bus.readDataBus(), 0x42);
+  ASSERT_EQ(system->bus().readDataBus(), 0x42);
 }
 
 TEST_F(RegisterTest, dontPutWhenOtherRegAddressed) {
@@ -42,5 +42,5 @@ TEST_F(RegisterTest, dontPutWhenOtherRegAddressed) {
 TEST_F(RegisterTest, dontGetWhenOtherRegAddressed) {
   reg -> setValue(0x42);
   system -> cycle(false, true, 2, 1, 0, 0x37);
-  ASSERT_EQ(system->bus.readDataBus(), 0x37);
+  ASSERT_EQ(system->bus().readDataBus(), 0x37);
 }

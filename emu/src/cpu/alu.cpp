@@ -19,6 +19,11 @@ ALU::ALU(int ident, Register *lhs) : Register(ident), m_lhs(lhs) {
   //
 }
 
+SystemError ALU::status() {
+  printf("%1x. LHS %02x  %1x. RHS %02x\n", lhs() -> id(), lhs() -> getValue(), id(), getValue());
+  return NoError;
+}
+
 SystemError ALU::onHighClock() {
   static Operator operators[16] = {
     /* 0x0 ADD */ [](ALU *alu) {
@@ -41,8 +46,12 @@ SystemError ALU::onHighClock() {
              + (byte) (alu -> bus() -> isSet(SystemBus::C))) + 1;
     },
 
-    /* 0x4 */ nullptr,
-    /* 0x5 */ nullptr,
+    /* 0x4 INC */ [](ALU *alu) {
+      return alu -> getValue() + 1;
+    },
+    /* 0x5 DEC */ [](ALU *alu) {
+      return alu -> getValue() - 1;
+    },
     /* 0x6 */ nullptr,
     /* 0x7 */ nullptr,
     /* 0x8 AND */ [](ALU *alu) {

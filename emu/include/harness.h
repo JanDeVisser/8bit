@@ -3,47 +3,29 @@
 
 #include "systembus.h"
 
-class Harness {
-private:
-  std::vector<ConnectedComponent *>  m_components;
-
+class Harness : public ComponentContainer {
 public:
-  SystemBus           bus;
-  ConnectedComponent *comp = nullptr;
   bool                printStatus = false;
-  SystemError         error;
 
-  explicit Harness() : bus(), m_components() {
-    m_components.resize(16);
+  explicit Harness() : ComponentContainer() {
   };
 
-  explicit Harness(ConnectedComponent *c) : Harness() {
-    insert(c);
-    comp = c;
-  };
-
-  void insert(ConnectedComponent *component) {
-    component -> bus(&bus);
-    m_components[component -> id()] = component;
-  }
-
-  ConnectedComponent * component(int ix) {
-    return m_components[ix];
+  explicit Harness(ConnectedComponent *c) : ComponentContainer(c) {
   }
 
   int run(bool debug = false, int cycles = -1) {
     bool oldPrintStatus = printStatus;
     printStatus = debug;
 //    status("Starting Condition", 0);
-    error = NoError;
+    error(NoError);
     int i = 0;
     do {
-      error = cycle(i);
-      if (error != NoError) {
+      error(cycle(i));
+      if (error() != NoError) {
         goto exit;
       }
       i++;
-    } while (bus.halt() && ((cycles == -1) || (i < cycles)));
+    } while (bus().halt() && ((cycles == -1) || (i < cycles)));
   exit:
     printStatus = oldPrintStatus;
     return i;
@@ -63,61 +45,37 @@ public:
   SystemError status(const std::string &msg, int num) {
     if (!printStatus) return NoError;
     std::cout << "Cycle " << num << " " << msg << std::endl;
-    auto err = bus.status();
+    auto err = bus().status();
     if (err == NoError) {
-      for (auto &component : m_components) {
-        if (!component) continue;
-        err = component->status();
-        if (err != NoError) {
-          return err;
-        }
-      }
+      err = forAllComponents([](Component *c) -> SystemError {
+        return c -> status();
+      });
     }
-    return NoError;
+    return err;
   }
 
   SystemError onRisingClockEdge() {
-    for (auto & component : m_components) {
-      if (!component) continue;
-      auto err = component -> onRisingClockEdge();
-      if (err != NoError) {
-        return err;
-      }
-    }
-    return NoError;
+    return forAllComponents([](Component *c) -> SystemError {
+      return c -> onRisingClockEdge();
+    });
   }
 
   SystemError onHighClock() {
-    for (auto & component : m_components) {
-      if (!component) continue;
-      auto error = component -> onHighClock();
-      if (error != NoError) {
-        return error;
-      }
-    }
-    return NoError;
+    return forAllComponents([](Component *c) -> SystemError {
+      return c -> onHighClock();
+    });
   }
 
   SystemError onFallingClockEdge() {
-    for (auto & component : m_components) {
-      if (!component) continue;
-      auto error = component -> onFallingClockEdge();
-      if (error != NoError) {
-        return error;
-      }
-    }
-    return NoError;
+    return forAllComponents([](Component *c) -> SystemError {
+      return c -> onFallingClockEdge();
+    });
   }
 
   SystemError onLowClock() {
-    for (auto & component : m_components) {
-      if (!component) continue;
-      auto error = component -> onLowClock();
-      if (error != NoError) {
-        return error;
-      }
-    }
-    return NoError;
+    return forAllComponents([](Component *c) -> SystemError {
+      return c -> onLowClock();
+    });
   }
 
   SystemError cycle(int num) {
@@ -138,7 +96,7 @@ public:
 
   SystemError cycle(bool xdata, bool xaddr, byte getReg, byte putReg, byte opflags_val,
                     byte data_bus_val = 0x00, byte addr_bus_val = 0x00) {
-    bus.initialize(xdata, xaddr, getReg, putReg, opflags_val, data_bus_val, addr_bus_val);
+    bus().initialize(xdata, xaddr, getReg, putReg, opflags_val, data_bus_val, addr_bus_val);
     return cycle(0);
   }
 };

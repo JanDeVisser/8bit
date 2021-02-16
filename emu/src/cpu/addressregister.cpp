@@ -32,12 +32,25 @@ SystemError AddressRegister::onRisingClockEdge() {
       }
     } else if (!bus()->xaddr()) {
       if (bus()->opflags() & SystemBus::Dec) {
-        setValue(value - 1);
+        setValue(value - (word) 1);
+        if (bus()->opflags() & SystemBus::Flags) {
+          bus()->clearFlags();
+          if (value == 0x0000) {
+            bus()->setFlag(SystemBus::Z);
+          }
+        }
       }
       bus()->putOnDataBus(value & 0x00FF);
       bus()->putOnAddrBus((value & 0xFF00) >> 8);
       if (bus()->opflags() & SystemBus::Inc) {
-        setValue(value+1);
+        setValue(value + (word) 1);
+        if (bus()->opflags() & SystemBus::Flags) {
+          bus()->clearFlags();
+          if (value == 0x0000) {
+            bus()->setFlag(SystemBus::Z);
+            bus()->setFlag(SystemBus::C);
+          }
+        }
       }
     }
   }

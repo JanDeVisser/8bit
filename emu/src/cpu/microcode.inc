@@ -89,7 +89,7 @@ static MicroCode mc[256] = {
   },
 
   {
-    .opcode = MOV_A_ADDR, .instruction = "mov a,(%04x)", 
+    .opcode = MOV_A_ADDR, .instruction = "mov a,*%04x",
     .addressingMode = static_cast<AddressingMode>(AbsoluteByte | Done), .target = GP_A
   },
 
@@ -121,7 +121,7 @@ static MicroCode mc[256] = {
   },
 
   {
-    .opcode = MOV_B_ADDR, .instruction = "mov b,(%04x)",
+    .opcode = MOV_B_ADDR, .instruction = "mov b,*%04x",
     .addressingMode = static_cast<AddressingMode>(AbsoluteByte | Done), .target = GP_B
   },
 
@@ -152,7 +152,7 @@ static MicroCode mc[256] = {
   },
 
   {
-    .opcode = MOV_C_ADDR, .instruction = "mov c,(%04x)",
+    .opcode = MOV_C_ADDR, .instruction = "mov c,*%04x",
     .addressingMode = static_cast<AddressingMode>(AbsoluteByte | Done), .target = GP_C
   },
 
@@ -184,7 +184,7 @@ static MicroCode mc[256] = {
   },
 
   {
-    .opcode = MOV_D_ADDR, .instruction = "mov d,(%04x)",
+    .opcode = MOV_D_ADDR, .instruction = "mov d,*%04x",
     .addressingMode = static_cast<AddressingMode>(AbsoluteByte | Done), .target = GP_D
   },
 
@@ -215,7 +215,7 @@ static MicroCode mc[256] = {
   },
 
   {
-    .opcode = MOV_SP_ADDR, .instruction = "mov sp,(%04x)", .
+    .opcode = MOV_SP_ADDR, .instruction = "mov sp,*%04x", .
     addressingMode = static_cast<AddressingMode>(AbsoluteWord | Done), .target = SP
   },
 
@@ -232,7 +232,7 @@ static MicroCode mc[256] = {
   },
 
   {
-    .opcode = MOV_SI_ADDR, .instruction = "mov si,(%04x)",
+    .opcode = MOV_SI_ADDR, .instruction = "mov si,*%04x",
     .addressingMode = static_cast<AddressingMode>(AbsoluteWord | Done), .target = Si
   },
 
@@ -250,7 +250,7 @@ static MicroCode mc[256] = {
   },
 
   {
-    .opcode = MOV_DI_ADDR, .instruction = "mov di,(%04x)",
+    .opcode = MOV_DI_ADDR, .instruction = "mov di,*%04x",
     .addressingMode = static_cast<AddressingMode>(AbsoluteWord | Done), .target = Di
   },
 
@@ -263,7 +263,7 @@ static MicroCode mc[256] = {
   },
 
   {
-    .opcode = MOV_A_SI, .instruction = "mov a,(si)", .addressingMode = Immediate,
+    .opcode = MOV_A_SI, .instruction = "mov a,*si", .addressingMode = Immediate,
     .steps = {
       { .action = MicroCode::XADDR, .src = Si, .target = MEMADDR, .opflags = SystemBus::Inc },
       { .action = MicroCode::XDATA, .src = MEM, .target = GP_A, .opflags = SystemBus::Done },
@@ -271,7 +271,7 @@ static MicroCode mc[256] = {
   },
 
   {
-    .opcode = MOV_B_SI, .instruction = "mov b,(si)", .addressingMode = Immediate,
+    .opcode = MOV_B_SI, .instruction = "mov b,*si", .addressingMode = Immediate,
     .steps = {
       { .action = MicroCode::XADDR, .src = Si, .target = MEMADDR, .opflags = SystemBus::Inc },
       { .action = MicroCode::XDATA, .src = MEM, .target = GP_B, .opflags = SystemBus::Done },
@@ -279,7 +279,7 @@ static MicroCode mc[256] = {
   },
 
   {
-    .opcode = MOV_C_SI, .instruction = "mov c,(si)", .addressingMode = Immediate,
+    .opcode = MOV_C_SI, .instruction = "mov c,*si", .addressingMode = Immediate,
     .steps = {
       { .action = MicroCode::XADDR, .src = Si, .target = MEMADDR, .opflags = SystemBus::Inc },
       { .action = MicroCode::XDATA, .src = MEM, .target = GP_C, .opflags = SystemBus::Done },
@@ -287,7 +287,7 @@ static MicroCode mc[256] = {
   },
 
   {
-    .opcode = MOV_D_SI, .instruction = "mov d,(si)", .addressingMode = Immediate,
+    .opcode = MOV_D_SI, .instruction = "mov d,*si", .addressingMode = Immediate,
     .steps = {
       { .action = MicroCode::XADDR, .src = Si, .target = MEMADDR, .opflags = SystemBus::Inc },
       { .action = MicroCode::XDATA, .src = MEM, .target = GP_D, .opflags = SystemBus::Done },
@@ -295,7 +295,7 @@ static MicroCode mc[256] = {
   },
 
   {
-    .opcode = MOV_A_DI, .instruction = "mov a,(di)", .addressingMode = Immediate,
+    .opcode = MOV_A_DI, .instruction = "mov a,*di", .addressingMode = Immediate,
     .steps = {
       { .action = MicroCode::XADDR, .src = Di, .target = MEMADDR, .opflags = SystemBus::Inc },
       { .action = MicroCode::XDATA, .src = MEM, .target = GP_A, .opflags = SystemBus::Done },
@@ -303,7 +303,7 @@ static MicroCode mc[256] = {
   },
 
   {
-    .opcode = MOV_B_DI, .instruction = "mov b,(di)", .addressingMode = Immediate,
+    .opcode = MOV_B_DI, .instruction = "mov b,*di", .addressingMode = Immediate,
     .steps = {
       { .action = MicroCode::XADDR, .src = Di, .target = MEMADDR, .opflags = SystemBus::Inc },
       { .action = MicroCode::XDATA, .src = MEM, .target = GP_B, .opflags = SystemBus::Done },
@@ -311,7 +311,7 @@ static MicroCode mc[256] = {
   },
 
   {
-    .opcode = MOV_C_DI, .instruction = "mov c,(di)", .addressingMode = Immediate,
+    .opcode = MOV_C_DI, .instruction = "mov c,*di", .addressingMode = Immediate,
     .steps = {
       { .action = MicroCode::XADDR, .src = Di, .target = MEMADDR, .opflags = SystemBus::Inc },
       { .action = MicroCode::XDATA, .src = MEM, .target = GP_C, .opflags = SystemBus::Done },
@@ -319,7 +319,7 @@ static MicroCode mc[256] = {
   },
 
   {
-    .opcode = MOV_D_DI, .instruction = "mov d,(di)", .addressingMode = Immediate,
+    .opcode = MOV_D_DI, .instruction = "mov d,*di", .addressingMode = Immediate,
     .steps = {
       { .action = MicroCode::XADDR, .src = Di, .target = MEMADDR, .opflags = SystemBus::Inc },
       { .action = MicroCode::XDATA, .src = MEM, .target = GP_D, .opflags = SystemBus::Done },
@@ -327,7 +327,7 @@ static MicroCode mc[256] = {
   },
 
   {
-    .opcode = MOV_DI_SI, .instruction = "mov (di),(si)", .addressingMode = Immediate,
+    .opcode = MOV_DI_SI, .instruction = "mov *di,*si", .addressingMode = Immediate,
     .steps = {
       { .action = MicroCode::XADDR, .src = Si, .target = MEMADDR, .opflags = SystemBus::Inc },
       { .action = MicroCode::XDATA, .src = MEM, .target = TX, .opflags = SystemBus::None },
@@ -469,14 +469,14 @@ static MicroCode mc[256] = {
   },
 
   {
-    .opcode = MOV_ADDR_A, .instruction = "mov (%04x),a", .addressingMode = DirectWord, .target = MEMADDR, // 0x39
+    .opcode = MOV_ADDR_A, .instruction = "mov *%04x,a", .addressingMode = DirectWord, .target = MEMADDR, // 0x39
     .steps = {
       { .action = MicroCode::XDATA, .src = GP_A, .target = MEM, .opflags = SystemBus::Done },
     }
   },
 
   {
-    .opcode = MOV_DI_A, .instruction = "mov (di),a", .addressingMode = Immediate, // 0x3A
+    .opcode = MOV_DI_A, .instruction = "mov *di,a", .addressingMode = Immediate, // 0x3A
     .steps = {
       { .action = MicroCode::XADDR, .src = Di, .target = MEMADDR, .opflags = SystemBus::Inc },
       { .action = MicroCode::XDATA, .src = GP_A, .target = MEM, .opflags = SystemBus::Done },
@@ -484,14 +484,14 @@ static MicroCode mc[256] = {
   },
 
   {
-    .opcode = MOV_ADDR_B, .instruction = "mov (%04x),b", .addressingMode = DirectWord, .target = MEMADDR, // 0x3B
+    .opcode = MOV_ADDR_B, .instruction = "mov *%04x,b", .addressingMode = DirectWord, .target = MEMADDR, // 0x3B
     .steps = {
       { .action = MicroCode::XDATA, .src = GP_B, .target = MEM, .opflags = SystemBus::Done },
     }
   },
 
   {
-    .opcode = MOV_DI_B, .instruction = "mov (di),b", .addressingMode = Immediate, // 0x3C
+    .opcode = MOV_DI_B, .instruction = "mov *di,b", .addressingMode = Immediate, // 0x3C
     .steps = {
       { .action = MicroCode::XADDR, .src = Di, .target = MEMADDR, .opflags = SystemBus::Inc },
       { .action = MicroCode::XDATA, .src = GP_B, .target = MEM, .opflags = SystemBus::Done },
@@ -499,14 +499,14 @@ static MicroCode mc[256] = {
   },
 
   {
-    .opcode = MOV_ADDR_C, .instruction = "mov (%04x),c",  .addressingMode = DirectWord, .target = MEMADDR, // 0x3D
+    .opcode = MOV_ADDR_C, .instruction = "mov *%04x,c",  .addressingMode = DirectWord, .target = MEMADDR, // 0x3D
     .steps = {
       { .action = MicroCode::XDATA, .src = GP_C, .target = MEM, .opflags = SystemBus::Done },
     }
   },
 
   {
-    .opcode = MOV_DI_C, .instruction = "mov (di),c", .addressingMode = Immediate, // 0x3E
+    .opcode = MOV_DI_C, .instruction = "mov *di,c", .addressingMode = Immediate, // 0x3E
     .steps = {
       { .action = MicroCode::XADDR, .src = Di, .target = MEMADDR, .opflags = SystemBus::Inc },
       { .action = MicroCode::XDATA, .src = GP_C, .target = MEM, .opflags = SystemBus::Done },
@@ -514,14 +514,14 @@ static MicroCode mc[256] = {
   },
 
   {
-    .opcode = MOV_ADDR_D, .instruction = "mov (%04x),d",  .addressingMode = DirectWord, .target = MEMADDR, // 0x3F
+    .opcode = MOV_ADDR_D, .instruction = "mov *%04x,d",  .addressingMode = DirectWord, .target = MEMADDR, // 0x3F
     .steps = {
       { .action = MicroCode::XDATA, .src = GP_D, .target = MEM, .opflags = SystemBus::Done },
     }
   },
 
   {
-    .opcode = MOV_DI_D, .instruction = "mov (di),d", .addressingMode = Immediate, // 0x40
+    .opcode = MOV_DI_D, .instruction = "mov *di,d", .addressingMode = Immediate, // 0x40
     .steps = {
       { .action = MicroCode::XADDR, .src = Di, .target = MEMADDR, .opflags = SystemBus::Inc },
       { .action = MicroCode::XDATA, .src = GP_D, .target = MEM, .opflags = SystemBus::Done },
@@ -529,7 +529,7 @@ static MicroCode mc[256] = {
   },
 
   {
-    .opcode = MOV_ADDR_SI, .instruction = "mov (%04x),si",  .addressingMode = DirectWord, .target = TX, // 0x41
+    .opcode = MOV_ADDR_SI, .instruction = "mov *%04x,si",  .addressingMode = DirectWord, .target = TX, // 0x41
     .steps = {
       { .action = MicroCode::XADDR, .src = TX, .target = MEMADDR, .opflags = SystemBus::Inc },
       { .action = MicroCode::XDATA, .src = Si, .target = MEM, .opflags = SystemBus::None },
@@ -539,7 +539,7 @@ static MicroCode mc[256] = {
   },
 
   {
-    .opcode = MOV_ADDR_DI, .instruction = "mov (%04x),di",  .addressingMode = DirectWord, .target = TX, // 0x42
+    .opcode = MOV_ADDR_DI, .instruction = "mov *%04x,di",  .addressingMode = DirectWord, .target = TX, // 0x42
     .steps = {
       { .action = MicroCode::XADDR, .src = TX, .target = MEMADDR, .opflags = SystemBus::Inc },
       { .action = MicroCode::XDATA, .src = Di, .target = MEM, .opflags = SystemBus::None },
@@ -549,7 +549,7 @@ static MicroCode mc[256] = {
   },
 
   {
-    .opcode = MOV_ADDR_CD, .instruction = "mov (%04x),cd",  .addressingMode = DirectWord, .target = TX, // 0x43
+    .opcode = MOV_ADDR_CD, .instruction = "mov *%04x,cd",  .addressingMode = DirectWord, .target = TX, // 0x43
     .steps = {
       { .action = MicroCode::XADDR, .src = TX, .target = MEMADDR, .opflags = SystemBus::Inc },
       { .action = MicroCode::XDATA, .src = GP_C, .target = MEM, .opflags = SystemBus::None },
@@ -559,7 +559,7 @@ static MicroCode mc[256] = {
   },
 
   {
-    .opcode = MOV_SI_CD_, .instruction = "mov (si),cd",  .addressingMode = Immediate, // 0x44
+    .opcode = MOV_SI_CD_, .instruction = "mov *si,cd",  .addressingMode = Immediate, // 0x44
     .steps = {
       { .action = MicroCode::XADDR, .src = Si, .target = MEMADDR, .opflags = SystemBus::Inc },
       { .action = MicroCode::XDATA, .src = GP_C, .target = MEM, .opflags = SystemBus::None },
@@ -569,7 +569,7 @@ static MicroCode mc[256] = {
   },
 
   {
-    .opcode = MOV_DI_CD_, .instruction = "mov (di),cd",  .addressingMode = Immediate, // 0x45
+    .opcode = MOV_DI_CD_, .instruction = "mov *di,cd",  .addressingMode = Immediate, // 0x45
     .steps = {
       { .action = MicroCode::XADDR, .src = Di, .target = MEMADDR, .opflags = SystemBus::Inc },
       { .action = MicroCode::XDATA, .src = GP_C, .target = MEM, .opflags = SystemBus::None },
@@ -646,10 +646,10 @@ static MicroCode mc[256] = {
   ALU_UNARY_OP(SHR_D, "shr d", GP_D, SHR),
 
   // Clear
-  ALU_UNARY_OP(CLR_A, "clr a", GP_A, CLR),
-  ALU_UNARY_OP(CLR_B, "clr b", GP_B, CLR),
-  ALU_UNARY_OP(CLR_C, "clr c", GP_C, CLR),
-  ALU_UNARY_OP(CLR_D, "clr d", GP_D, CLR),
+  ALU_OP(CLR_A, "clr a", GP_A, GP_A, XOR),
+  ALU_OP(CLR_B, "clr b", GP_B, GP_B, XOR),
+  ALU_OP(CLR_C, "clr c", GP_C, GP_C, XOR),
+  ALU_OP(CLR_D, "clr d", GP_D, GP_D, XOR),
 
   // Swap
   SWAP(SWP_A_B, "swp a,b", GP_A, GP_B),
@@ -665,30 +665,30 @@ static MicroCode mc[256] = {
   ALU_WIDE_OP(SBB_AB_CD, "sbb ab,cd", SBB, SBB),
 
   {
-    .opcode = JMP_ABS, .instruction = "jmp (%04x)",
+    .opcode = JMP_ABS, .instruction = "jmp *%04x",
     .addressingMode = static_cast<AddressingMode>(AbsoluteWord | Done), .target = PC
   },
 
   {
-    .opcode = JNZ_ABS, .instruction = "jnz (%04x)",
+    .opcode = JNZ_ABS, .instruction = "jnz *%04x",
     .addressingMode = static_cast<AddressingMode>(AbsoluteWord | Done), .target = PC,
     .condition = SystemBus::Z, .condition_op = MicroCode::Nand
   },
 
   {
-    .opcode = JC_ABS, .instruction = "jc (%04x)",
+    .opcode = JC_ABS, .instruction = "jc *%04x",
     .addressingMode = static_cast<AddressingMode>(AbsoluteWord | Done), .target = PC,
     .condition = SystemBus::C, .condition_op = MicroCode::And
   },
 
   {
-    .opcode = JV_ABS, .instruction = "jv (%04x)",
+    .opcode = JV_ABS, .instruction = "jv *%04x",
     .addressingMode = static_cast<AddressingMode>(AbsoluteWord | Done), .target = PC,
     .condition = SystemBus::V, .condition_op = MicroCode::And
   },
 
   {
-    .opcode = CALL_ABS, .instruction = "call (%04x)", .addressingMode = Immediate,
+    .opcode = CALL_ABS, .instruction = "call *%04x", .addressingMode = ImmediateWord,
     .steps = {
       // Can't use AbsoluteWord addressing mode because need to push PC before
       // reading destination address from memory.

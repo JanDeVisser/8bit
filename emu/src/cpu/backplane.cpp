@@ -59,9 +59,20 @@ Controller * BackPlane::controller() const {
   return dynamic_cast<Controller *>(component(IR));
 }
 
+Memory * BackPlane::memory() const {
+  return dynamic_cast<Memory *>(component(MEMADDR));
+}
+
+void BackPlane::loadImage(word sz, const byte *data) {
+  image = MemImage(0x0000, sz, data);
+  memory() -> initialize(&image);
+  reset();
+}
+
+
 void BackPlane::run() {
-  if (controller() -> getValue() == HLT) {
-    reset();
+  if (!bus().sus()) {
+    bus().clearSus();
   }
   clock.start();
 }
@@ -145,9 +156,17 @@ SystemError BackPlane::onLowClock() {
   error(onClockEvent([](Component *c) -> SystemError {
     return (c) ? c -> onLowClock() : NoError;
   }));
-  if ((error() == NoError) && !bus().halt()) {
+  if ((error() == NoError) && (!bus().halt() || !bus().sus())) {
     stop();
   }
   m_phase = (m_phase == SystemClock) ? IOClock : SystemClock;
   return error();
+}
+
+bool BackPlane::setClockSpeed(double freq) {
+  return clock.setSpeed(freq);
+}
+
+double BackPlane::clockSpeed() {
+  return clock.frequency();
 }

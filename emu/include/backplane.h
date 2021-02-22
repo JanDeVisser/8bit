@@ -5,6 +5,7 @@
 #include <vector>
 #include "clock.h"
 #include "controller.h"
+#include "memory.h"
 #include "systembus.h"
 
 
@@ -31,6 +32,8 @@ public:
   Controller::RunMode     runMode() const;
   void                    setRunMode(Controller::RunMode runMode) const;
   Controller *            controller() const;
+  Memory *                memory() const;
+  void                    loadImage(word, const byte *);
 
   SystemError             status() override;
   SystemError             reset() override;
@@ -38,6 +41,9 @@ public:
   SystemError             onHighClock() override;
   SystemError             onFallingClockEdge() override;
   SystemError             onLowClock() override;
+
+  bool                    setClockSpeed(double);
+  double                  clockSpeed();
 
   void                    defaultSetup();
 

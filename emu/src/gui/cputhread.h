@@ -5,24 +5,39 @@
 
 #include "backplane.h"
 
-class CPUThread : public QThread {
+class CPU : public QObject {
   Q_OBJECT
 
 public:
-  explicit CPUThread(QObject * = nullptr);
-  ~CPUThread() override = default;
+  explicit CPU(QObject * = nullptr);
+  ~CPU() override = default;
   BackPlane *    getSystem() { return m_system; }
   void           setRunMode(Controller::RunMode) const;
+  void           openImage(QString &);
+
+  void           run();
+  void           continueExecution();
+  void           step();
+  void           tick();
+  void           reset();
+  bool           isRunning() const;
+  bool           isHalted() const;
+  bool           isSuspended() const;
 
 signals:
-  void executionStart(void);
-  void executionEnded(void);
+  void executionStart();
+  void executionEnded();
+  void executionInterrupted();
 
-protected:
-  void run() override;
 
 private:
+  QThread   *m_thread;
   BackPlane *m_system;
+  bool       m_running;
+
+  void start(Controller::RunMode);
+private slots:
+  void finished();
 };
 
 

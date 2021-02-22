@@ -22,6 +22,7 @@ public:
     Started,
     Stopped,
     Error,
+    FreqChange,
   };
   virtual void clockEvent(ClockEvent event) = 0;
 };
@@ -32,7 +33,7 @@ public:
   enum State { Running, Stopped };
 
 private:
-  float            khz;
+  double           khz;
   Component       *owner;
   Cycle            cycle = Low;
   State            state = Stopped;
@@ -43,12 +44,14 @@ private:
 
 
 public:
-  Clock(Component *o, float speed_khz) : khz(speed_khz), owner(o) { }
+  Clock(Component *o, double speed_khz) : khz(speed_khz), owner(o) { }
   virtual ~Clock() = default;
 
+  double         frequency() { return khz; }
   unsigned long  tick() const;
   SystemError    start();
   void           stop();
+  bool           setSpeed(double);
 
   ClockListener * setListener(ClockListener *);
 };

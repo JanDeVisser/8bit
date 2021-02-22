@@ -55,6 +55,7 @@ add_executable(emu
         src/gui/qled.cpp src/gui/qled.h
         src/gui/cputhread.h src/gui/cputhread.cpp
         src/gui/componentview.h src/gui/componentview.cpp
+        src/gui/memdump.cpp src/gui/memdump.h
 )
 
 target_link_libraries(

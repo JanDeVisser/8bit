@@ -38,6 +38,7 @@ void Clock::sleep() const {
 SystemError Clock::start() {
   cycle = Low;
   SystemError err = NoError;
+  sendEvent(ClockListener::Started);
   for (state = Running; err == NoError && state == Running; ) {
     if ((err = owner -> onRisingClockEdge()) != NoError) {
       break;
@@ -60,4 +61,14 @@ SystemError Clock::start() {
 
 void Clock::stop() {
   state = Stopped;
+}
+
+bool Clock::setSpeed(double freq) {
+  if ((freq > 0) && (freq <= 1000)) {
+    khz = freq;
+    sendEvent(ClockListener::FreqChange);
+    return true;
+  } else {
+    return false;
+  }
 }

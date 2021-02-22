@@ -38,6 +38,7 @@ void Memory::add(word address, word size, const byte *contents) {
         (*mem)[ix] = contents[ix];
       }
     }
+    sendEvent(EV_IMAGELOADED);
   }
 }
 

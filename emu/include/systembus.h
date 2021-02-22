@@ -53,6 +53,8 @@ public:
   bool             xdata() const { return _xdata; }
   bool             xaddr() const { return _xaddr; }
   bool             halt() const { return _halt; }
+  bool             sus() const { return _sus; }
+  void             clearSus() { _sus = true; }
   byte             putID() const { return put; }
   byte             getID() const { return get; }
   byte             opflags() const { return op; }
@@ -61,6 +63,7 @@ public:
   void             xdata(int, int, int);
   void             xaddr(int, int, int);
   void             stop();
+  void             suspend();
   SystemError      reset() override;
   SystemError      status() override;
 

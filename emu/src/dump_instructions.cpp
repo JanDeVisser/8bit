@@ -1,10 +1,11 @@
 #include <iostream>
+#include <cstring>
 
 #include "alu.h"
 #include "controller.h"
 #include "src/cpu/microcode.inc"
 
-int main(int argc, char **argv) {
+void cplusplus() {
   std::cout << "const char * MNEMONIC[256] = {" << std::endl;
   for (int ix = 0; ix < 256; ix++) {
     MicroCode &m = mc[ix];
@@ -15,4 +16,23 @@ int main(int argc, char **argv) {
     }
   }
   std::cout << "}" << std::endl;
+}
+
+void python() {
+  std::cout << "opcodes = {" << std::endl;
+  for (int ix = 0; ix < 256; ix++) {
+    MicroCode &m = mc[ix];
+    if (m.opcode == ix) {
+      std::cout << "  \"" << m.instruction << "\": " << ix << "," << std::endl;
+    }
+  }
+  std::cout << "}" << std::endl;
+}
+
+int main(int argc, char **argv) {
+  if (argc > 1 && !strcmp(argv[1], "--python")) {
+    python();
+  } else {
+    cplusplus();
+  }
 }

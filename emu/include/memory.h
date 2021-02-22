@@ -6,6 +6,7 @@
 #define EMU_MEMORY_H
 
 #include <vector>
+#include <cstring>
 
 #include "addressregister.h"
 #include "systembus.h"
@@ -14,6 +15,12 @@ struct MemImage {
   word        address;
   word        size;
   const byte *contents;
+
+  MemImage(word addr, word sz, const byte *d)
+      : address(addr), size(sz) {
+    contents = new byte[sz];
+    memcpy((void *) contents, (void *) d, sz);
+  }
 };
 
 class Memory : public AddressRegister {
@@ -31,7 +38,8 @@ public:
 
   constexpr static byte MEM_ID = 0x7;
   constexpr static byte ADDR_ID = 0xF;
-  constexpr static int EV_CONTENTSCHANGED = 2;
+  constexpr static int EV_CONTENTSCHANGED = 0x04;
+  constexpr static int EV_IMAGELOADED = 0x05;
 
   void erase();
   void add(word, word, const byte *);
@@ -71,10 +79,21 @@ public:
     }
   }
 
+  word ramStart() const {
+    return ram_start;
+  }
+
+  word ramEnd() const {
+    return ram_start + ram_size;
+  }
+
+  word ramSize() const {
+    return ram_size;
+  }
+
   SystemError status() override;
   SystemError onRisingClockEdge() override;
   SystemError onHighClock() override;
-
 };
 
 #endif //EMU_MEMORY_H

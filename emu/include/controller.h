@@ -15,13 +15,15 @@ constexpr static byte OP_MASK = 0x0F;
 constexpr static byte OP_HALT = 0x0F;
 
 enum AddressingMode {
-  Immediate    = 0x00,
-  DirectByte   = 0x11,
-  DirectWord   = 0x21,
-  AbsoluteByte = 0x12,
-  AbsoluteWord = 0x22,
-  Mask         = 0x7F,
-  Done         = 0x80
+  Immediate     = 0x00,
+  ImmediateByte = 0x01,
+  ImmediateWord = 0x02,
+  DirectByte    = 0x11,
+  DirectWord    = 0x21,
+  AbsoluteByte  = 0x12,
+  AbsoluteWord  = 0x22,
+  Mask          = 0x7F,
+  Done          = 0x80
 };
 
 
@@ -70,6 +72,7 @@ private:
   const MicroCode *microCode;
   MicroCodeRunner *m_runner = nullptr;
   RunMode          m_runMode = Continuous;
+  int              m_suspended = 0;
 
 public:
   explicit    Controller(const MicroCode *);
@@ -97,6 +100,7 @@ private:
   std::vector<MicroCode::MicroCodeStep>  steps;
   bool                                   valid = true;
   word                                   m_constant = 0;
+  bool                                   m_complete = false;
 
   void evaluateCondition();
   void fetchSteps();
@@ -109,9 +113,10 @@ public:
   MicroCodeRunner(SystemBus *, const MicroCode *);
   SystemError executeNextStep(int step);
   bool        hasStep(int step);
-  word        grabConstant(int step);
+  bool        grabConstant(int step);
   std::string instruction() const;
   word        constant() const;
+  bool        complete() const { return m_complete; }
 
 };
 

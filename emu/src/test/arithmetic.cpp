@@ -107,7 +107,7 @@ struct OpTest {
     m_value = val;
   }
 
-  virtual void execute(Harness *system) {
+  virtual void execute(Harness *system, int cycles = -1) {
     auto *mem = dynamic_cast<Memory *>(system -> component(MEMADDR));
     const byte *b = bytes();
     mem -> initialize(RAM_START, bytesSize(), b);
@@ -127,9 +127,9 @@ struct OpTest {
     ASSERT_EQ(pc -> getValue(), RAM_START);
 
     byte e = expect[m_op](system, m_value, m_value2);
-    auto cycles = system -> run();
+    auto cyclesUsed = system -> run();
     ASSERT_EQ(system -> error(), NoError);
-    ASSERT_EQ(cycles, cycleCount());
+    ASSERT_EQ(cyclesUsed, (cycles < 0) ? cycleCount() : cycles);
     ASSERT_EQ(system -> bus().halt(), false);
 
     auto *r = dynamic_cast<Register *>(system -> component(m_reg));
@@ -301,8 +301,8 @@ TEST_F(TESTNAME, shrA) {
 }
 
 TEST_F(TESTNAME, clrA) {
-  UnaryOpTest t(GP_A, CLR_A, ALU::Operations::CLR);
-  t.execute(system);
+  UnaryOpTest t(GP_A, CLR_A, (ALU::Operations) 0x0E);
+  t.execute(system, 12);
   ASSERT_TRUE(system -> bus().isSet(SystemBus::Z));
 }
 
@@ -474,8 +474,8 @@ TEST_F(TESTNAME, shrB) {
 }
 
 TEST_F(TESTNAME, clrB) {
-  UnaryOpTest t(GP_B, CLR_B, ALU::Operations::CLR);
-  t.execute(system);
+  UnaryOpTest t(GP_B, CLR_B, (ALU::Operations) 0x0E);
+  t.execute(system, 12);
   ASSERT_TRUE(system -> bus().isSet(SystemBus::Z));
 }
 
@@ -645,8 +645,8 @@ TEST_F(TESTNAME, shrC) {
 }
 
 TEST_F(TESTNAME, clrC) {
-  UnaryOpTest t(GP_C, CLR_C, ALU::Operations::CLR);
-  t.execute(system);
+  UnaryOpTest t(GP_C, CLR_C, (ALU::Operations) 0x0E);
+  t.execute(system, 12);
   ASSERT_TRUE(system -> bus().isSet(SystemBus::Z));
 }
 
@@ -743,8 +743,8 @@ TEST_F(TESTNAME, shrD) {
 }
 
 TEST_F(TESTNAME, clrD) {
-  UnaryOpTest t(GP_D, CLR_D, ALU::Operations::CLR);
-  t.execute(system);
+  UnaryOpTest t(GP_D, CLR_D, (ALU::Operations) 0x0E);
+  t.execute(system, 12);
   ASSERT_TRUE(system -> bus().isSet(SystemBus::Z));
 }
 

@@ -1,13 +1,17 @@
+#include <QStyleOption>
+#include <QPainter>
 #include "componentview.h"
 
-ComponentView::ComponentView(ConnectedComponent *comp, QWidget *owner) : QWidget(owner) {
+ComponentView::ComponentView(ConnectedComponent *comp, int width, QWidget *owner) : QWidget(owner) {
   component = comp;
   component -> setListener(this);
   layout = new QHBoxLayout;
   setLayout(layout);
   name = new ImpactLabel(component -> name().c_str());
   name -> setFontSize(20);
-  value = new DSegLabel(QString("%1").arg(component -> getValue(), w(), 16, QLatin1Char('0')));
+  value = new DSegLabel(QString("%1").arg(component -> getValue(), width, 16, QLatin1Char('0')));
+  value -> setDSegStyle(DSegLabel::IBM3270);
+  setStyleSheet("ComponentView { border: 2px solid grey; border-radius: 5px; }");
 
   layout->addWidget(name);
   layout->addWidget(value);
@@ -15,30 +19,33 @@ ComponentView::ComponentView(ConnectedComponent *comp, QWidget *owner) : QWidget
 
 void ComponentView::componentEvent(Component *sender, int ev) {
   if (ev == Component::EV_VALUECHANGED) {
-    value -> setText(QString("%1").arg(component -> getValue(), w(), 16, QLatin1Char('0')));
+    value -> setValue(component -> getValue());
   }
 }
+
+void ComponentView::paintEvent(QPaintEvent *pe) {
+  QStyleOption o;
+  o.initFrom(this);
+  QPainter p(this);
+  style()->drawPrimitive(
+    QStyle::PE_Widget, &o, &p, this);
+};
 
 // -----------------------------------------------------------------------
 
 InstructionRegisterView::InstructionRegisterView(Controller *reg, QWidget *parent)
-    : ComponentView(reg, parent) {
-  step = new QLabel("0");
-  step -> setFont(QFont("DSEG7 Classic", 16));
-  step -> setStyleSheet("QLabel { color : red; }");
+    : ComponentView(reg, 10, parent) {
+  step = new DSegLabel("0", 1);
   layout->addWidget(step);
-//  value -> setFont(QFont("Skyfont", 18));
-//  value -> setStyleSheet("QLabel { color : white; }");
-  value -> setFont(QFont("DSEG14 Classic", 16));
-  value -> setText("!!!!!!!!!!");
+  value -> erase();
 }
 
 void InstructionRegisterView::componentEvent(Component *sender, int ev) {
   switch (ev) {
     case Component::EV_VALUECHANGED:
     case Controller::EV_STEPCHANGED:
-      step -> setText(QString("%1").arg(controller()->getStep()));
-      value -> setText(QString("%1").arg(controller()->instruction().c_str(), 10, QLatin1Char('!')));
+      step -> setValue(controller()->getStep());
+      value -> setValue(QString("%1").arg(controller()->instruction().c_str(), 10, QLatin1Char(' ')));
       break;
     default:
       // Unrecognized
@@ -48,10 +55,9 @@ void InstructionRegisterView::componentEvent(Component *sender, int ev) {
 
 // -----------------------------------------------------------------------
 
-MemoryView::MemoryView(Memory *reg, QWidget *parent) : ComponentView(reg, parent) {
-  contents = new QLabel("0");
-  contents -> setFont(QFont("DSEG7 Classic", 16));
-  contents -> setStyleSheet("QLabel { color : red; }");
+MemoryView::MemoryView(Memory *reg, QWidget *parent) : ComponentView(reg, 4, parent) {
+  contents = new DSegLabel("", 2);
+  contents -> setValue((*reg)[reg -> getValue()]);
   layout->addWidget(contents);
 }
 
@@ -60,7 +66,7 @@ void MemoryView::componentEvent(Component *sender, int ev) {
     case Component::EV_VALUECHANGED:
       this -> ComponentView::componentEvent(sender, ev);
     case Memory::EV_CONTENTSCHANGED:
-      contents -> setText(QString("%1").arg((*memory())[component -> getValue()], 2, 16, QLatin1Char('0')));
+      contents -> setValue((*memory())[component -> getValue()]);
       break;
     default:
       // Unrecognized
@@ -115,13 +121,13 @@ SystemBusView::SystemBusView(SystemBus &bus, QWidget *parent)
   lbl = new ImpactLabel("Operation");
   grid -> addWidget(lbl, 0, 6, Qt::AlignHCenter);
   op = new QLedArray(4);
-  op -> setColourForAll(QLed::Green);
+  op -> setColourForAll(QLed::Red);
   grid -> addWidget(op, 1, 6);
 
   lbl = new ImpactLabel("Flags");
   grid -> addWidget(lbl, 0, 7, Qt::AlignHCenter);
   flags = new QLedArray(3);
-  flags -> setColourForAll(QLed::Green);
+  flags -> setColourForAll(QLed::Red);
   grid -> addWidget(flags, 1, 7);
 
 }

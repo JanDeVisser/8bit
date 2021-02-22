@@ -85,9 +85,7 @@ SystemError ALU::onHighClock() {
       }
       return ret;
     },
-    /* 0xE CLR */ [](ALU *alu) {
-        return (word) 0;
-      },
+    /* 0xE */ nullptr,
     /* 0xF */ nullptr,
   };
 
@@ -101,7 +99,7 @@ SystemError ALU::onHighClock() {
       auto result = m_operator(this);
       byte val = (byte) (result & 0xFF);
       bus() -> clearFlags();
-      if (val == 0) {
+      if ((val & 0x00FF) == 0) {
         bus() -> setFlag(SystemBus::Z);
       }
       if (result & 0x0100) {

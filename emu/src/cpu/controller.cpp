@@ -99,13 +99,20 @@ void MicroCodeRunner::fetchAbsoluteWord() {
   }
 }
 
-word MicroCodeRunner::grabConstant(int step) {
+bool MicroCodeRunner::grabConstant(int step) {
+  bool last = false;
   switch (mc -> addressingMode & Mask) {
+    case Immediate:
+      m_complete = (step == 1);
+      break;
     case DirectByte:
+    case ImmediateByte:
       if (step == 2) {
         m_constant = m_bus -> readDataBus();
+        m_complete = true;
       }
       break;
+    case ImmediateWord:
     case DirectWord:
     case AbsoluteByte:
     case AbsoluteWord:
@@ -113,12 +120,13 @@ word MicroCodeRunner::grabConstant(int step) {
         m_constant = m_bus -> readDataBus();
       } else if (step == 4) {
         m_constant |= (((word) m_bus -> readDataBus()) << 8);
+        m_complete = true;
       }
       break;
     default:
       break;
   }
-  return m_constant;
+  return m_complete;
 }
 
 SystemError MicroCodeRunner::executeNextStep(int step) {
@@ -209,14 +217,24 @@ SystemError Controller::reset() {
 
 SystemError Controller::onHighClock() {
   this -> Register::onHighClock();
+  m_suspended++;
   if (m_runner) {
-    m_runner -> grabConstant(step - 2);
+    if (m_runner -> grabConstant(step - 2)) {
+      sendEvent(EV_VALUECHANGED);
+    };
   }
   return NoError;
 }
 
 SystemError Controller::onLowClock() {
   const MicroCode *mc;
+
+  if ((m_suspended == 1) && (runMode() == BreakAtInstruction) && m_runner && m_runner -> complete()) {
+    bus() -> suspend();
+    return NoError;
+  }
+  m_suspended = 0;
+
   switch (step) {
     case 0:
       bus()->xaddr(PC, MEMADDR, SystemBus::Inc);
@@ -252,18 +270,14 @@ SystemError Controller::onLowClock() {
         delete m_runner;
         m_runner = nullptr;
         setValue(0);
-        if (runMode() == BreakAtInstruction) {
-          bus() -> stop();
-        } else {
-          bus()->xaddr(PC, MEMADDR, SystemBus::Inc);
-        }
+        bus()->xaddr(PC, MEMADDR, SystemBus::Inc);
       }
       break;
   }
   step++;
   sendEvent(EV_STEPCHANGED);
   if (runMode() == BreakAtClock) {
-    bus() -> stop();
+    bus() -> suspend();
   }
   return NoError;
 }

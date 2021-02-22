@@ -27,27 +27,65 @@ public:
 };
 
 class DSegLabel : public QLabel {
+private:
+  QLatin1Char       m_fill;
+  int               m_width;
+
 public:
   enum Style {
     SevenSegment,
     FourteenSegment,
+    IBM3270,
+    SkyFont,
   };
 
-  explicit DSegLabel(const QString &label, const char *color = "red") : QLabel(label) {
-    setDSegStyle(SevenSegment);
-    setStyleSheet(QString("QLabel { color : %1; }").arg(color));
+  explicit DSegLabel(const QString &label, int width = 4) : QLabel(label), m_fill(' '), m_width(width) {
+    setDSegStyle(IBM3270);
   }
 
   void setDSegStyle(Style style) {
     switch (style) {
       case SevenSegment:
-        setFont(QFont("DSEG7 Classic", 16));
+        setStyleSheet("color: green; font-family: \"DSEG7 Classic\"; font-size: 16pt;");
+        m_fill = QLatin1Char('!');
         break;
       case FourteenSegment:
-        auto font = QFont("DSEG14 Classic", 16);
-        setFont(font);
+        setStyleSheet("color: green; font-family: \"DSEG14 Classic\"; font-size: 16pt;");
+        m_fill = QLatin1Char('!');
+        break;
+      case IBM3270:
+        setStyleSheet("font-family: ibm3270; font-size: 20pt; color: green;");;
+        m_fill = QLatin1Char(' ');
+        break;
+      case SkyFont:
+        setStyleSheet("font-family: SkyFont; font-size: 20pt; color: green;");;
+        m_fill = QLatin1Char(' ');
         break;
     }
+  }
+
+  void setValue(int value) {
+    setText(QString("%1").arg(value, m_width, 16, QLatin1Char('0')));
+  }
+
+  void setValue(QString &value) {
+    setText(QString("%1").arg(value, m_width, m_fill));
+  }
+
+  void setValue(QString &&value) {
+    setText(QString("%1").arg(value, m_width, m_fill));
+  }
+
+  void setValue(std::string &value) {
+    setText(QString("%1").arg(value.c_str(), m_width, m_fill));
+  }
+
+  void setValue(std::string &&value) {
+    setText(QString("%1").arg(value.c_str(), m_width, m_fill));
+  }
+
+  void erase() {
+    setText("");
   }
 };
 
@@ -55,14 +93,14 @@ class RegisterNameLabel : public DSegLabel {
 private:
   SystemBus &m_bus;
 public:
-  explicit RegisterNameLabel(SystemBus &bus) : DSegLabel("!!!!"), m_bus(bus) {
-    setDSegStyle(FourteenSegment);
+  explicit RegisterNameLabel(SystemBus &bus) : DSegLabel("", 4), m_bus(bus) {
+    erase();
   }
 
   void setRegister(int id) {
     auto bp = m_bus.backplane();
     auto n = bp.name(id);
-    while (n.size() < 4) n += "!";
+    while (n.size() < 4) n += " ";
     setText(n.c_str());
   }
 };
@@ -73,12 +111,13 @@ private:
   QLedArray *m_leds;
   DSegLabel *m_label;
 public:
-  ByteWidget(QWidget *parent = nullptr) : QWidget(parent) {
+  explicit ByteWidget(QWidget *parent = nullptr) : QWidget(parent) {
     m_layout = new QHBoxLayout;
     setLayout(m_layout);
     m_leds = new QLedArray(8, 12);
     m_layout->addWidget(m_leds);
-    m_label = new DSegLabel("!!");
+    m_label = new DSegLabel("", 2);
+    m_label -> setValue(0);
     m_layout->addWidget(m_label);
     setValue(0);
   }
@@ -101,8 +140,9 @@ protected:
   DSegLabel           *value;
   QHBoxLayout         *layout;
 
-  explicit ComponentView(ConnectedComponent *, QWidget *);
-  virtual int w() const { return 4; }
+  explicit ComponentView(ConnectedComponent *, int = 4, QWidget * = nullptr);
+
+  void paintEvent(QPaintEvent *pe) override;
 };
 
 class RegisterView : public ComponentView {
@@ -110,10 +150,7 @@ class RegisterView : public ComponentView {
 
 public:
   explicit RegisterView(Register *reg, QWidget *parent = nullptr)
-    : ComponentView(reg, parent) { }
-
-protected:
-  int w() const override { return 2; }
+    : ComponentView(reg, 2, parent) { }
 };
 
 
@@ -122,7 +159,7 @@ class AddressRegisterView : public ComponentView {
 
 public:
   explicit AddressRegisterView(AddressRegister *reg, QWidget *parent = nullptr)
-    : ComponentView(reg, parent) { }
+    : ComponentView(reg, 4, parent) { }
 };
 
 
@@ -134,7 +171,7 @@ public:
   void componentEvent(Component *, int) override;
 
 private:
-  QLabel     *step;
+  DSegLabel  *step;
 
 protected:
   Controller * controller() const {
@@ -156,7 +193,7 @@ protected:
   }
 
 private:
-  QLabel   *contents;
+  DSegLabel   *contents;
 };
 
 class SystemBusView : public QWidget, public ComponentListener {

@@ -80,6 +80,11 @@ void SystemBus::stop() {
   sendEvent(EV_VALUECHANGED);
 }
 
+void SystemBus::suspend() {
+  _sus = false;
+  sendEvent(EV_VALUECHANGED);
+}
+
 
 SystemError SystemBus::status() {
   printf("DATA ADDR  GET PUT OP ACT FLAG\n");

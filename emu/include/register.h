@@ -12,7 +12,7 @@ private:
   byte        value = 0;
 
 public:
-  explicit    Register(int);
+  explicit    Register(int, std::string && = "");
 
   void        setValue(byte val);
   int         getValue() const override { return value; }

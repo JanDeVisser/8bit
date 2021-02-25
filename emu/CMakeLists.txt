@@ -40,7 +40,7 @@ add_library(emucomponents STATIC
         include/clock.h src/cpu/clock.cpp
         include/component.h src/cpu/component.cpp
         include/controller.h src/cpu/controller.cpp
-        include/systembus.h src/cpu/systembus.cpp
+        include/systembus.h src/cpu/systembusview.cpp
         include/harness.h
         include/addressregister.h src/cpu/addressregister.cpp
         include/memory.h src/cpu/memory.cpp
@@ -50,12 +50,15 @@ add_library(emucomponents STATIC
 
 add_executable(emu
         src/gui/main.cpp
-        src/gui/mainwindow.cpp
-        src/gui/mainwindow.h
-        src/gui/qled.cpp src/gui/qled.h
-        src/gui/cputhread.h src/gui/cputhread.cpp
-        src/gui/componentview.h src/gui/componentview.cpp
+
+        src/gui/mainwindow.cpp src/gui/mainwindow.h
+        src/gui/commands.cpp src/gui/commands.h
+        src/gui/cputhread.cpp src/gui/cputhread.h
+        src/gui/componentview.cpp src/gui/componentview.h
+        src/gui/systembusview.cpp src/gui/systembusview.h
         src/gui/memdump.cpp src/gui/memdump.h
+
+        src/gui/qled.cpp src/gui/qled.h
 )
 
 target_link_libraries(

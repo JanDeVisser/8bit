@@ -13,6 +13,7 @@ public:
   ~CPU() override = default;
   BackPlane *    getSystem() { return m_system; }
   void           setRunMode(Controller::RunMode) const;
+  void           openImage(QString &&);
   void           openImage(QString &);
 
   void           run();

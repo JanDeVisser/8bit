@@ -2,13 +2,14 @@
 #include <QDialog>
 #include <QFileDialog>
 #include <QGridLayout>
+#include <QMessageBox>
 #include <QObject>
 #include <QPushButton>
-#include <QStyleOption>
 #include <QPainter>
 
 #include "componentview.h"
 #include "mainwindow.h"
+#include "systembusview.h"
 
 #include "addressregister.h"
 #include "controller.h"
@@ -26,10 +27,17 @@ MainWindow::MainWindow(QWidget *parent)
   setStyleSheet("MainWindow { background-color: black; }");
 
   auto widget = new QWidget;
-  auto *layout = new QGridLayout;
-  widget -> setLayout(layout);
+  auto mainLayout = new QHBoxLayout;
+  auto layout = new QGridLayout;
+  mainLayout -> addLayout(layout);
+  widget -> setLayout(mainLayout);
 
   auto system = cpu -> getSystem();
+
+  m_memdump = new MemDump(system);
+  m_memdump -> setFocusPolicy(Qt::NoFocus);
+  mainLayout->addWidget(m_memdump);
+
   auto busView = new SystemBusView(system -> bus());
   layout -> addWidget(busView, 0, 0, 1, 2);
   for (int r = 0; r < 4; r++) {
@@ -52,16 +60,19 @@ MainWindow::MainWindow(QWidget *parent)
   auto mem = system->component(MEMADDR);
   auto memView = new MemoryView(dynamic_cast<Memory *>(mem), widget);
   layout->addWidget(memView, row++, 0);
+  connect(memView, &ComponentView::valueChanged, m_memdump, &MemDump::focus);
+  connect(memView, &MemoryView::imageLoaded, m_memdump, &MemDump::reload);
+  connect(memView, &MemoryView::contentsChanged, m_memdump, &MemDump::reload);
 
-  history = new QLabel;
-  history ->setFont(QFont("ibm3270", 15));
-  history -> setStyleSheet("QLabel { background-color: black; color: green; border: none; }");
-  layout->addWidget(history, row++, 0, 1, 2);
+  m_history = new QLabel;
+  m_history ->setFont(QFont("ibm3270", 15));
+  m_history -> setStyleSheet("QLabel { background-color: black; color: green; border: none; }");
+  layout->addWidget(m_history, row++, 0, 1, 2);
 
-  result = new QLabel;
-  result ->setFont(QFont("ibm3270", 15));
-  result -> setStyleSheet("QLabel { background-color: black; color: green; border: none; }");
-  layout->addWidget(result, row++, 0, 1, 2);
+  m_result = new QLabel;
+  m_result ->setFont(QFont("ibm3270", 15));
+  m_result -> setStyleSheet("QLabel { background-color: black; color: green; border: none; }");
+  layout->addWidget(m_result, row++, 0, 1, 2);
 
   auto w = new QWidget;
   auto hbox = new QHBoxLayout;
@@ -71,25 +82,14 @@ MainWindow::MainWindow(QWidget *parent)
   prompt -> setStyleSheet("QLabel { background-color: black; color: green; }");
   hbox -> addWidget(prompt);
 
-  command = new CommandLineEdit;
-  command -> setMaxLength(80);
-  command ->setFont(QFont("ibm3270", 15));
-  command -> setStyleSheet("QLineEdit { background-color: black; font: ibm3270; font-size: 15; color: green; border: none; }");
-  connect(command, SIGNAL(returnPressed()), this, SLOT(commandSubmitted()));
-  hbox -> addWidget(command);
+  m_command = makeCommandLine();
+  hbox -> addWidget(m_command);
   layout->addWidget(w, row++, 0, 1, 2);
+  m_command -> setFocus();
 
   layout->setMenuBar(menuBar());
   setCentralWidget(widget);
   setWindowTitle(tr("Emu"));
-}
-
-void MainWindow::paintEvent(QPaintEvent *pe) {
-  QStyleOption o;
-  o.initFrom(this);
-  QPainter p(this);
-  style()->drawPrimitive(
-    QStyle::PE_Widget, &o, &p, this);
 }
 
 void MainWindow::createMenu()
@@ -130,132 +130,194 @@ void MainWindow::cpuStopped() {
   //
 }
 
-Command::Command(QString &cmd) : line(cmd) {
-  args = cmd.split(" ", Qt::SkipEmptyParts);
-  if (args.isEmpty()) {
-    setError("Syntax error: no command");
-  } else {
-    command = args[0].toLower();
-    args.removeAt(0);
-  }
-}
+CommandLineEdit * MainWindow::makeCommandLine() {
+  auto ret = new CommandLineEdit();
+  ret -> setMaxLength(80);
+  ret ->setFont(QFont("ibm3270", 15));
+  ret -> setStyleSheet("QLineEdit { background-color: black; font: ibm3270; font-size: 15; color: green; border: none; }");
+  connect(ret, SIGNAL(result(const QString &,bool,const QString &)), this, SLOT(commandResult(const QString &, bool, const QString &)));
 
-void Command::setError(QString &&err) {
-  result = err;
-  success = false;
-}
+  ret->addCommandDefinition(ret, "quit", 0, 0,
+    [this, ret](Command &cmd) {
+#if 0
+      if (QMessageBox::question(this, "Are you sure", "Are you sure you want to quit?") == QMessageBox::Yes) {
+        close();
+      }
+#endif
+#if 1
+      if (ret -> query("Are you sure you want to exit? (Y/N)", "yn") == "y") {
+        close();
+      }
+#endif
+    });
 
-void Command::setError(QString &err) {
-  result = err;
-  success = false;
-}
-
-void Command::setResult(QString &&res) {
-  result = res;
-  success = true;
-}
-
-void Command::setResult(QString &res) {
-  result = res;
-  success = true;
-}
-
-typedef std::function<void(Command &)> CommandHandler;
-
-void MainWindow::commandSubmitted() {
-  static QHash<QString, CommandHandler> handlers;
-
-  if (handlers.isEmpty()) {
-    handlers["run"] = [this](Command &cmd) {
+  ret->addCommandDefinition(ret, "run", 0, 0,
+    [this](Command &cmd) {
       if (!cpu->isRunning()) {
         cpu->run();
-        cmd.success = true;
+        cmd.setSuccess();
       } else {
         cmd.setError("CPU running");
       }
-    };
+    });
 
-    handlers["reset"] = [this](Command &cmd) {
-      if (!cpu -> isRunning()) {
-        cpu -> reset();
+  ret->addCommandDefinition(ret, "reset", 0, 0,
+    [this](Command &cmd) {
+      if (!cpu->isRunning()) {
+        cpu->reset();
       } else {
         cmd.setError("CPU running");
       }
-    };
+    });
 
-    handlers["step"] = [this](Command &cmd) {
-      if (cpu -> isRunning()) {
+  ret->addCommandDefinition(ret, "step", 0, 0,
+    [this](Command &cmd) {
+      if (cpu->isRunning()) {
         cmd.setError("CPU running");
-      } else if (cpu -> isHalted()) {
+      } else if (cpu->isHalted()) {
         cmd.setError("CPU halted");
       } else {
-        cpu -> step();
+        cpu->step();
       }
-    };
+    });
 
-    handlers["tick"] = [this](Command &cmd) {
-      if (cpu -> isRunning()) {
+  ret->addCommandDefinition(ret, "tick", 0, 0,
+    [this](Command &cmd) {
+      if (cpu->isRunning()) {
         cmd.setError("CPU running");
-      } else if (cpu -> isHalted()) {
+      } else if (cpu->isHalted()) {
         cmd.setError("CPU halted");
       } else {
-        cpu -> tick();
+        cpu->tick();
       }
-    };
+    });
 
-    handlers["continue"] = [this](Command &cmd) {
-      if (cpu -> isRunning()) {
+  ret->addCommandDefinition(ret, "continue", 0, 0,
+    [this](Command &cmd) {
+      if (cpu->isRunning()) {
         cmd.setError("CPU running");
-      } else if (cpu -> isHalted()) {
+      } else if (cpu->isHalted()) {
         cmd.setError("CPU halted");
       } else {
-        cpu -> continueExecution();
+        cpu->continueExecution();
       }
-    };
+    });
 
-    handlers["clock"] = [this](Command &cmd) {
+  ret->addCommandDefinition(ret, "clock", 0, 1,
+    [this](Command &cmd) {
       bool ok;
       double speed;
-      switch (cmd.args.size()) {
+      switch (cmd.numArgs()) {
         case 0:
           cmd.setResult(QString("%1 kHz").arg(cpu->getSystem()->clockSpeed()));
           break;
         case 1:
-          speed = cmd.args[1].toDouble(&ok);
+          speed = cmd.arg(0).toDouble(&ok);
           if (ok) {
             if (!cpu->getSystem()->setClockSpeed(speed)) {
               cmd.setError(QString("Frequency %1 kHz out of bounds").arg(speed));
             }
           } else {
-            cmd.setError(QString("Requested frequency '%1' is not a number").arg(cmd.args[1]));
+            cmd.setError(QString("Requested frequency '%1' is not a number").arg(cmd.arg(0)));
+          }
+          break;
+      }
+    });
+
+  ret->addCommandDefinition(ret, "load", 1, 1,
+    [this](Command &cmd) {
+      if (!QFile::exists(cmd.arg(0))) {
+        cmd.setError(QString("File %1/%2 does not exist").arg(QDir::currentPath()).arg(cmd.arg(0)));
+      } else if (!(QFile::permissions(cmd.arg(0)) | QFileDevice::ReadUser)) {
+        cmd.setError(QString("File %1/%2 is not readable").arg(QDir::currentPath()).arg(cmd.arg(0)));
+      } else {
+        cpu->openImage(cmd.arg(0));
+      }
+    },
+    [this](const QStringList &args) {
+      return fileCompletions(args);
+    });
+
+  ret->addCommandDefinition(ret, "mem", 1, 2,
+    [this](Command &cmd) {
+      byte value;
+      word addr;
+      bool ok;
+      bool poke = false;
+      byte v;
+      int  opcode;
+
+      switch (cmd.numArgs()) {
+        case 2:
+          value = (byte) cmd.arg(1).toInt(&ok, 0);
+          if (!ok) {
+            opcode = cpu->getSystem()->controller()->opcodeForInstruction(
+              cmd.arg(1).replace(QChar('_'), QChar(' ')).toStdString());
+            if (opcode == -1) {
+              cmd.setError(QString("Syntax error: unparsable value '%1").arg(cmd.arg(1)));
+              return;
+            }
+            value = (byte) opcode;
+          }
+          poke = true;
+          // Fall through
+        case 1:
+          addr = (word) cmd.arg(0).toInt(&ok, 0);
+          if (!ok) {
+            cmd.setError(QString("Syntax error: unparsable address '%1").arg(cmd.arg(0)));
+            return;
+          }
+          if (poke) {
+            (*cpu->getSystem()->memory())[addr] = value;
+          }
+          m_memdump->focusOnAddress(addr);
+          v = (*cpu->getSystem()->memory())[addr];
+          if ((v >= 32) && (v <= 126)) {
+            cmd.setResult(QString::asprintf("*0x%04x = 0x%02x '%c' %s",
+                                            addr, v,
+                                            ((v >= 32) && (v <= 126)) ? (char) v : '.',
+                                            cpu->getSystem()->controller()->instructionWithOpcode(v).c_str()));
+          } else {
+            cmd.setResult(QString::asprintf("*0x%04x = 0x%02x %s",
+                                            addr, v,
+                                            cpu->getSystem()->controller()->instructionWithOpcode(v).c_str()));
           }
           break;
         default:
           cmd.setError("Syntax error: too many arguments");
           break;
       }
-    };
-  }
+    });
 
-  QString cmd = command -> text();
-  addHistory(cmd);
-  Command c(cmd);
-  if (c.success) {
-    if (handlers.contains(c.command)) {
-      auto handler = handlers[c.command];
-      handler(c);
-    } else {
-      c.setError("Unrecognized command");
+  return ret;
+}
+
+void MainWindow::commandResult(const QString &line, bool ok, const QString &result) {
+  addHistory(line);
+  m_result->setText((result != "") ? result : (ok) ? "OK" : "ERROR");
+  m_result->setStyleSheet(QString("color: %1").arg((ok) ? "green" : "red"));
+}
+
+void MainWindow::addHistory(const QString &cmd) {
+  m_history->setText(cmd);
+}
+
+QVector<QString> MainWindow::fileCompletions(const QStringList &args) {
+  QVector<QString> ret;
+  if (args.size() != 2) {
+    return ret;
+  }
+  auto path = args[1].split("/");
+  QString dirPath(path.mid(0, path.size() -1 ).join("/"));
+  QString entry(path[path.size()-1]);
+  QDir dir(dirPath);
+  for (auto &e : dir.entryInfoList()) {
+    if (((entry == "") || e.fileName().startsWith(entry)) && (e.fileName() != ".")) {
+      ret.append(QString("%1 %2%3").arg(args[0], e.filePath(), (e.isDir()) ? "/" : ""));
     }
   }
-
-  result->setText((c.result != "") ? c.result : (c.success) ? "OK" : "ERROR");
-  result->setStyleSheet(QString("color: %1").arg((c.success) ? "green" : "red"));
-  command->setText("");
+  return ret;
 }
 
-void MainWindow::addHistory(QString &cmd) {
-  history->setText(cmd);
-}
 
 //#include "mainwindow.moc"

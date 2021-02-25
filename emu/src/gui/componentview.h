@@ -3,6 +3,8 @@
 
 #include <QLabel>
 #include <QLayout>
+#include <QPainter>
+#include <QStyleOption>
 #include <QWidget>
 
 #include "qled.h"
@@ -13,6 +15,24 @@
 #include "register.h"
 
 #define LED_SIZE 16
+
+class StyledWidget : public QWidget {
+  Q_OBJECT
+
+public:
+  explicit StyledWidget(QWidget *parent = nullptr) : QWidget(parent) {
+    setStyleSheet("StyledWidget { border: 1px solid grey; border-radius: 5px; }");
+  }
+
+protected:
+  void paintEvent(QPaintEvent *) override {
+    QStyleOption o;
+    o.initFrom(this);
+    QPainter p(this);
+    style()->drawPrimitive(
+      QStyle::PE_Widget, &o, &p, this);
+  }
+};
 
 class ImpactLabel : public QLabel {
 public:
@@ -128,8 +148,13 @@ public:
   }
 };
 
-class ComponentView : public QWidget, ComponentListener {
+typedef std::function<void()> ValueUpdater;
+
+class ComponentView : public StyledWidget, ComponentListener {
   Q_OBJECT
+
+signals:
+  void valueChanged();
 
 public:
   void componentEvent(Component *sender, int ev) override;
@@ -139,10 +164,12 @@ protected:
   ImpactLabel         *name;
   DSegLabel           *value;
   QHBoxLayout         *layout;
+  ValueUpdater         updater = nullptr;
 
   explicit ComponentView(ConnectedComponent *, int = 4, QWidget * = nullptr);
 
-  void paintEvent(QPaintEvent *pe) override;
+protected slots:
+  void    refresh();
 };
 
 class RegisterView : public ComponentView {
@@ -166,6 +193,9 @@ public:
 class InstructionRegisterView : public ComponentView {
   Q_OBJECT
 
+signals:
+  void stepChanged();
+
 public:
   explicit InstructionRegisterView(Controller *reg, QWidget *parent = nullptr);
   void componentEvent(Component *, int) override;
@@ -183,6 +213,10 @@ protected:
 class MemoryView : public ComponentView {
   Q_OBJECT
 
+signals:
+  void contentsChanged();
+  void imageLoaded();
+
 public:
   explicit MemoryView(Memory *reg, QWidget *parent = nullptr);
   void componentEvent(Component *, int) override;
@@ -194,25 +228,6 @@ protected:
 
 private:
   DSegLabel   *contents;
-};
-
-class SystemBusView : public QWidget, public ComponentListener {
-  Q_OBJECT
-public:
-  explicit SystemBusView(SystemBus &bus, QWidget *parent = nullptr);
-  void componentEvent(Component *sender, int ev) override;
-
-private:
-  SystemBus         &systemBus;
-  QLayout           *layout;
-  ByteWidget        *data;
-  ByteWidget        *address;
-  RegisterNameLabel *put;
-  RegisterNameLabel *get;
-  QLed              *xdata;
-  QLed              *xaddr;
-  QLedArray         *op;
-  QLedArray         *flags;
 };
 
 #endif //EMU_COMPONENTVIEW_H

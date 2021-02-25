@@ -33,7 +33,7 @@ void BackPlane::defaultSetup() {
   insert(new Register(GP_B));             // 0x01
   insert(new Register(GP_C));             // 0x02
   insert(new Register(GP_D));             // 0x03
-  auto lhs = new Register(LHS);
+  auto lhs = new Register(LHS, "LHS");
   insert(lhs);                         // 0x04
   insert(new ALU(RHS, lhs)); // 0x05
   insert(new Controller(mc));             // 0x06

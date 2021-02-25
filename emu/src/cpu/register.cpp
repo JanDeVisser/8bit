@@ -2,8 +2,9 @@
 
 #include "register.h"
 
-Register::Register(int registerID)
-    : ConnectedComponent(registerID, std::string(1, 'A' + registerID)) {
+Register::Register(int registerID, std::string &&name)
+  : ConnectedComponent(registerID,
+                       (!name.empty()) ? name : std::string(1, 'A' + registerID)) {
 }
 
 void Register::setValue(byte val) {

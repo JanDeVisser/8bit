@@ -229,11 +229,11 @@ SystemError Controller::onHighClock() {
 SystemError Controller::onLowClock() {
   const MicroCode *mc;
 
-  if ((m_suspended == 1) && (runMode() == BreakAtInstruction) && m_runner && m_runner -> complete()) {
+  if ((m_suspended >= 1) && (runMode() == BreakAtInstruction) && m_runner && m_runner -> complete()) {
+    m_suspended = -16;
     bus() -> suspend();
     return NoError;
   }
-  m_suspended = 0;
 
   switch (step) {
     case 0:
@@ -241,6 +241,7 @@ SystemError Controller::onLowClock() {
       break;
     case 1:
       bus()->xdata(MEM, IR, SystemBus::None);
+      m_suspended = 0;
       break;
     case 2:
       mc = microCode + getValue();
@@ -280,4 +281,19 @@ SystemError Controller::onLowClock() {
     bus() -> suspend();
   }
   return NoError;
+}
+
+std::string Controller::instructionWithOpcode(int opcode) const {
+  auto mc = microCode + opcode;
+  return (mc && (mc->opcode == opcode)) ? mc->instruction : "NOP";
+}
+
+int Controller::opcodeForInstruction(const std::string &instr) const {
+  for (int ix = 0; ix < 256; ix++) {
+    auto mc = microCode + ix;
+    if (mc && (mc->opcode == ix) && (instr == mc -> instruction)) {
+      return ix;
+    }
+  }
+  return -1;
 }

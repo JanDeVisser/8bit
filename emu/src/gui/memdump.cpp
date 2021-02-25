@@ -74,18 +74,32 @@ void MemModel::reload() {
   endResetModel();
 }
 
+QModelIndex MemModel::indexOf(word addr) const {
+  if (addr == 0xFFFF) {
+    addr = m_memory.getValue();
+  }
+  auto row = (addr - m_memory.ramStart()) / 8;
+  auto col = 0;
+  return createIndex(row, col);
+}
+
 /* ----------------------------------------------------------------------- */
 
 MemDump::MemDump(BackPlane *system, QWidget *parent)
     : QWidget(parent), m_system(system), m_model(*(system -> memory()))  {
-  auto w = new QWidget();
-  auto *view = new QListView;
-  view->setModel(&m_model);
-  view -> setFont(QFont("ibm3270", 12));
-//  view -> setStyleSheet("QListView { color : green; border: 2px solid grey; border-radius: 5px;}");
-  view -> setStyleSheet("QListView { color : green; }");
+  m_view = new QListView;
+  m_view->setModel(&m_model);
+  QFont font("ibm3270", 12);
+  QFontMetrics metrics(font);
+  auto width = metrics.horizontalAdvance("0000    00 00 00 00 00 00 00 00");
+  m_view->setMinimumWidth(width + 40);
+  m_view -> setFont(font);
+  m_view -> setFocusPolicy(Qt::ClickFocus);
+
+  m_view -> setStyleSheet("QListView::item { background: black; color : green; } "
+                          "QListView::item:selected { background: green; color: black; }");
   auto *layout = new QVBoxLayout;
-  layout->addWidget(view);
+  layout->addWidget(m_view);
   setLayout(layout);
   setWindowTitle(tr("Memory"));
 }
@@ -93,3 +107,12 @@ MemDump::MemDump(BackPlane *system, QWidget *parent)
 void MemDump::reload() {
   m_model.reload();
 }
+
+void MemDump::focusOnAddress(word addr) {
+  m_view -> setCurrentIndex(m_model.indexOf(addr));
+}
+
+void MemDump::focus() {
+  focusOnAddress(0xFFFF);
+}
+

@@ -89,4 +89,8 @@ void CPU::openImage(QString &img) {
   m_system -> loadImage(bytearr.size(), (const byte *) bytearr.data());
 }
 
+void CPU::openImage(QString &&img) {
+  openImage(img);
+}
+
 #include "cputhread.moc"

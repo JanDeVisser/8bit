@@ -130,7 +130,6 @@ public:
     component->bus(&m_bus);
     m_components[component->id()] = component;
     m_aliases[component->alias()] = component->id();
-
   }
 
   ConnectedComponent * component(int ix) const {

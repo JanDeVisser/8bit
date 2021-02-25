@@ -19,7 +19,7 @@ struct MemImage {
   MemImage(word addr, word sz, const byte *d)
       : address(addr), size(sz) {
     contents = new byte[sz];
-    memcpy((void *) contents, (void *) d, sz);
+      memcpy((void *) contents, (void *) d, sz);
   }
 };
 

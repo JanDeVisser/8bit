@@ -6,50 +6,18 @@
 #include <QLineEdit>
 #include <QMainWindow>
 #include <QMenuBar>
+#include <QPainter>
 #include <QProxyStyle>
 #include <QPushButton>
+#include <QStyleOption>
 #include <QThread>
+
+#include "commands.h"
 
 #include "cputhread.h"
 #include "backplane.h"
 #include "memdump.h"
 
-
-class BlockCursorStyle : public QProxyStyle {
-public:
-  explicit BlockCursorStyle(QStyle *style = nullptr) : QProxyStyle(style) {  }
-
-  int pixelMetric(PixelMetric metric, const QStyleOption *option, const QWidget *widget) const override {
-    if (metric == QStyle::PM_TextCursorWidth) {
-      return 10;
-    }
-    return QProxyStyle::pixelMetric(metric, option, widget);
-  }
-};
-
-
-class CommandLineEdit : public QLineEdit {
-  Q_OBJECT
-
-public:
-  explicit CommandLineEdit(QWidget *parent = nullptr) : QLineEdit(parent) {
-    setStyle(new BlockCursorStyle(style()));
-  }
-};
-
-struct Command {
-  QString     line;
-  QString     command;
-  QStringList args;
-  QString     result = "";
-  bool        success = true;
-
-  explicit Command(QString &);
-  void     setError(QString &&);
-  void     setError(QString &);
-  void     setResult(QString &&);
-  void     setResult(QString &);
-};
 
 class MainWindow : public QMainWindow
 {
@@ -58,7 +26,6 @@ class MainWindow : public QMainWindow
 private slots:
   void cpuStopped();
   void openFile();
-  void commandSubmitted();
 
 public:
   explicit MainWindow(QWidget *parent = nullptr);
@@ -67,15 +34,20 @@ private:
   CPU             *cpu = nullptr;
   QAction         *m_exit = nullptr;
   QAction         *m_open = nullptr;
-  QLabel          *history;
-  QLabel          *result;
-  CommandLineEdit *command;
+  QLabel          *m_history;
+  QLabel          *m_result;
+  CommandLineEdit *m_command;
 
   MemDump         *m_memdump = nullptr;
 
+  CommandLineEdit * makeCommandLine();
+
+private slots:
+  void          commandResult(const QString &, bool, const QString &);
+
 protected:
   void          createMenu();
-  void          paintEvent(QPaintEvent *) override;
-  void          addHistory(QString &);
+  void          addHistory(const QString &);
+  static QVector<QString> fileCompletions(const QStringList &);
 };
 #endif // MAINWINDOW_H

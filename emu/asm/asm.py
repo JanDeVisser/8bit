@@ -12,7 +12,7 @@ opcodes = {
     "mov a,b": 3,
     "mov a,c": 4,
     "mov a,d": 5,
-    "mov b, #%02x": 6,
+    "mov b,#%02x": 6,
     "mov b,*%04x": 7,
     "mov b,a": 8,
     "mov b,c": 9,
@@ -170,6 +170,7 @@ opcodes = {
     "hlt": 255,
 }
 
+
 def _split(line: str):
 
     # Clean the input string by:
@@ -250,20 +251,6 @@ def to_bytes(count, *data):
         raise ValueError(f'Expected {count} bytes in {" ".join(data)}, got {len(ret)}')
 
     return ret
-
-
-def split_test():
-    print(split("jan de visser"))
-    print(split("jan    de    visser"))
-    print(split("jan  \t   de\t\tvisser"))
-    print(split("jan  \t   'de    visser' 12 34"))
-    print(split("jan  \t   'de    visser'"))
-    print(split("jan  \t   'de    visser' "))
-    print(split("'jan  '\t   de    visser "))
-    print(split("  'jan  '\t   de    visser "))
-    print(split("  'jan'\t   de    visser "))
-    print(split("  'jan'\t   de    visser "))
-    print(split("'jan'\t   de    visser "))
 
 
 def bytes_to_str(bytes, prefix="", address=None, radix=True):

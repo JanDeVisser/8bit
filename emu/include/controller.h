@@ -82,6 +82,9 @@ public:
   int         getStep() const { return step; }
   RunMode     runMode() const { return m_runMode; }
   void        setRunMode(RunMode runMode);
+  std::string instructionWithOpcode(int) const;
+  int         opcodeForInstruction(std::string &&instr) const { return opcodeForInstruction(instr); }
+  int         opcodeForInstruction(const std::string &instr) const;
 
   SystemError status() override;
   SystemError reset() override;
@@ -90,6 +93,7 @@ public:
 
   constexpr static int EV_STEPCHANGED = 0x02;
   constexpr static int EV_AFTERINSTRUCTION = 0x03;
+
 
 };
 

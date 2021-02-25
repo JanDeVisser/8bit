@@ -1,7 +1,7 @@
 #include <iostream>
 #include "backplane.h"
 
-int main() {
+int main(int argc, char **argv) {
   auto *system = new BackPlane();
   system -> defaultSetup();
   system -> run();

@@ -116,7 +116,7 @@ static MicroCode mc[256] = {
 
 
   {
-    .opcode = MOV_B_CONST, .instruction = "mov b, #%02x", 
+    .opcode = MOV_B_CONST, .instruction = "mov b,#%02x",
     .addressingMode = static_cast<AddressingMode>(DirectByte | Done), .target = GP_B
   },
 

@@ -4,18 +4,19 @@
 #include <QGridLayout>
 #include <QMessageBox>
 #include <QObject>
-#include <QPushButton>
 #include <QPainter>
+#include <QTabWidget>
 
 #include "componentview.h"
 #include "mainwindow.h"
-#include "systembusview.h"
+#include "systembus.h"
 
 #include "addressregister.h"
 #include "controller.h"
 #include "memory.h"
 #include "register.h"
 #include "registers.h"
+#include "systembusview.h"
 
 
 MainWindow::MainWindow(QWidget *parent)
@@ -34,9 +35,16 @@ MainWindow::MainWindow(QWidget *parent)
 
   auto system = cpu -> getSystem();
 
+  auto tabs = new QTabWidget();
   m_memdump = new MemDump(system);
   m_memdump -> setFocusPolicy(Qt::NoFocus);
-  mainLayout->addWidget(m_memdump);
+  tabs->addTab(m_memdump, "Memory");
+  m_status = new QTextEdit();
+  m_status -> setFont(QFont("ibm3270", 10));
+  m_status -> setStyleSheet("QTextEdit { color: green; background-color: black; }");
+  tabs -> addTab(m_status, "Log");
+
+  mainLayout->addWidget(tabs);
 
   auto busView = new SystemBusView(system -> bus());
   layout -> addWidget(busView, 0, 0, 1, 2);
@@ -126,8 +134,13 @@ void MainWindow::openFile() {
 
 }
 
-void MainWindow::cpuStopped() {
-  //
+void MainWindow::cpuStopped(const QString &status) {
+  auto t = m_status->toPlainText();
+  if (!t.isEmpty()) {
+    t += "\n";
+  }
+  t += status;
+  m_status->setPlainText(t);
 }
 
 CommandLineEdit * MainWindow::makeCommandLine() {

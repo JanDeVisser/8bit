@@ -11,3 +11,7 @@ void Component::sendEvent(int ev) {
     listener->componentEvent(this, ev);
   }
 }
+
+std::ostream & operator << (std::ostream &os, Component &c) {
+  return c.status(os);
+}

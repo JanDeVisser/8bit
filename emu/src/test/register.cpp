@@ -23,24 +23,24 @@ protected:
 };
 
 TEST_F(RegisterTest, canPut) {
-  system -> cycle(false, true, 1, REGID, 0, 0x42);
+  system -> cycle(false, true, true, 1, REGID, 0, 0x42);
   ASSERT_EQ(reg -> getValue(), 0x42);
 }
 
 TEST_F(RegisterTest, canGet) {
   reg -> setValue(0x42);
-  system -> cycle(false, true, REGID, 1, 0, 0x37);
+  system -> cycle(false, true, true, REGID, 1, 0, 0x37);
   ASSERT_EQ(system->bus().readDataBus(), 0x42);
 }
 
 TEST_F(RegisterTest, dontPutWhenOtherRegAddressed) {
   reg -> setValue(0x37);
-  system -> cycle(false, true, 1, 2, 0, 0x42);
+  system -> cycle(false, true, true, 1, 2, 0, 0x42);
   ASSERT_EQ(reg -> getValue(), 0x37);
 }
 
 TEST_F(RegisterTest, dontGetWhenOtherRegAddressed) {
   reg -> setValue(0x42);
-  system -> cycle(false, true, 2, 1, 0, 0x37);
+  system -> cycle(false, true, true, 2, 1, 0, 0x37);
   ASSERT_EQ(system->bus().readDataBus(), 0x37);
 }

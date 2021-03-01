@@ -69,7 +69,6 @@ void BackPlane::loadImage(word sz, const byte *data) {
   reset();
 }
 
-
 void BackPlane::run() {
   if (!bus().sus()) {
     bus().clearSus();
@@ -113,22 +112,28 @@ SystemError BackPlane::reset() {
   return NoError;
 }
 
-SystemError BackPlane::status() {
-  error(bus().status());
-  if (error() == NoError) {
-    forAllComponents([](Component *c) -> SystemError {
-      return (c) ? c -> status() : NoError;
+std::ostream & BackPlane::status(std::ostream &os) {
+  bus().status(os);
+  if (error(bus().error()) == NoError) {
+    forAllComponents([&os](Component *c) -> SystemError {
+      c -> status(os);
+      return c->error();
     });
   }
-  return NoError;
+  return os;
 }
 
 SystemError BackPlane::onRisingClockEdge() {
   if (error() != NoError) {
     return error();
   }
-  if ((m_phase == SystemClock) && ((error(status())) != NoError)) {
-    return reportError();
+  if (m_phase == SystemClock) {
+    if (m_output) {
+      status(*m_output);
+    }
+    if (error() != NoError) {
+      return error();
+    }
   }
   return onClockEvent([](Component *c) -> SystemError {
       return (c) ? c -> onRisingClockEdge() : NoError;

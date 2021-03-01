@@ -31,11 +31,11 @@ public:
     SHR = 0x0D,
   };
 
-  ALU(int, Register *lhs);
-  Register * lhs() const { return m_lhs; }
+                 ALU(int, Register *lhs);
+  Register *     lhs() const { return m_lhs; }
 
-  SystemError status() override;
-  SystemError onHighClock() override;
+  std::ostream & status(std::ostream &) override;
+  SystemError    onHighClock() override;
 };
 
 

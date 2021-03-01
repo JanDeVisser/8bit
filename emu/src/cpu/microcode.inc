@@ -77,6 +77,22 @@
     } \
   }
 
+#define OUT(op, instr, reg) \
+  { \
+    .opcode = op, .instruction = instr,  .addressingMode = DirectByte, .target = SCRATCH, \
+    .steps = { \
+      { .action = MicroCode::IO, .src = reg, .target = DEREFSCRATCH, .opflags = SystemBus::IOOut | SystemBus::Done }, \
+    } \
+  }
+
+#define IN(op, instr, reg) \
+  { \
+    .opcode = op, .instruction = instr,  .addressingMode = DirectByte, .target = SCRATCH, \
+    .steps = { \
+      { .action = MicroCode::IO, .src = reg, .target = DEREFSCRATCH, .opflags = SystemBus::IOIn | SystemBus::Done }, \
+    } \
+  }
+
 
 static MicroCode mc[256] = {
   {
@@ -753,8 +769,17 @@ static MicroCode mc[256] = {
     }
   },
 
-  { /* 161 */ }, { /* 162 */ }, { /* 163 */ }, { /* 164 */ },
-  { /* 165 */ }, { /* 166 */ }, { /* 167 */ }, { /* 168 */ }, { /* 169 */ }, { /* 170 */ }, { /* 171 */ }, { /* 172 */ },
+  OUT(OUT_A, "out #%02x, a", GP_A),
+  OUT(OUT_B, "out #%02x, b", GP_B),
+  OUT(OUT_C, "out #%02x, c", GP_C),
+  OUT(OUT_D, "out #%02x, d", GP_D),
+
+  IN(IN_A, "in a, #%02x", GP_A),
+  IN(IN_B, "in b, #%02x", GP_B),
+  IN(IN_C, "in c, #%02x", GP_C),
+  IN(IN_D, "in d, #%02x", GP_D),
+
+  { /* 169 */ }, { /* 170 */ }, { /* 171 */ }, { /* 172 */ },
   { /* 173 */ }, { /* 174 */ }, { /* 175 */ }, { /* 176 */ }, { /* 177 */ }, { /* 178 */ }, { /* 179 */ }, { /* 180 */ },
   { /* 181 */ }, { /* 182 */ }, { /* 183 */ }, { /* 184 */ }, { /* 185 */ }, { /* 186 */ }, { /* 187 */ }, { /* 188 */ },
   { /* 189 */ }, { /* 190 */ }, { /* 191 */ }, { /* 192 */ }, { /* 193 */ }, { /* 194 */ }, { /* 195 */ }, { /* 196 */ },

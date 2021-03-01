@@ -91,9 +91,9 @@ public:
     return ram_size;
   }
 
-  SystemError status() override;
-  SystemError onRisingClockEdge() override;
-  SystemError onHighClock() override;
+  std::ostream & status(std::ostream &) override;
+  SystemError    onRisingClockEdge() override;
+  SystemError    onHighClock() override;
 };
 
 #endif //EMU_MEMORY_H

@@ -18,9 +18,10 @@ protected:
   }
 };
 
-CPU::CPU(QObject *parent) : QObject(parent), m_running(false) {
+CPU::CPU(QObject *parent) : QObject(parent), m_running(false), m_status() {
   m_system = new BackPlane();
   m_system -> defaultSetup();
+  m_system -> setOutputStream(m_status);
   m_thread = new Executor(m_system, this);
   connect(m_thread, &QThread::finished, this, &CPU::finished);
 }
@@ -59,10 +60,11 @@ void CPU::start(Controller::RunMode runMode) {
 
 void CPU::finished() {
   m_running = false;
+  std::cout << m_status.str();
   if (!m_system->bus().halt()) {
-    emit executionEnded();
+    emit executionEnded(QString::fromStdString(m_status.str()));
   } else {
-    emit executionInterrupted();
+    emit executionInterrupted(QString::fromStdString(m_status.str()));
   }
 }
 

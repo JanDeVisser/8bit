@@ -10,6 +10,7 @@
 #include <QProxyStyle>
 #include <QPushButton>
 #include <QStyleOption>
+#include <QTextEdit>
 #include <QThread>
 
 #include "commands.h"
@@ -24,7 +25,7 @@ class MainWindow : public QMainWindow
   Q_OBJECT
 
 private slots:
-  void cpuStopped();
+  void cpuStopped(const QString &);
   void openFile();
 
 public:
@@ -39,6 +40,7 @@ private:
   CommandLineEdit *m_command;
 
   MemDump         *m_memdump = nullptr;
+  QTextEdit       *m_status = nullptr;
 
   CommandLineEdit * makeCommandLine();
 

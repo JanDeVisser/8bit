@@ -44,11 +44,12 @@ void SystemBus::putOnAddrBus(byte value) {
   sendEvent(EV_VALUECHANGED);
 }
 
-void SystemBus::initialize(bool xdata, bool xaddr,
+void SystemBus::initialize(bool xdata, bool xaddr, bool io,
                            byte getReg, byte putReg, byte opflags_val,
                            byte data_bus_val, byte addr_bus_val) {
   _xdata = xdata;
   _xaddr = xaddr;
+  _io = io;
   get = getReg;
   put = putReg;
   op = opflags_val;
@@ -60,6 +61,7 @@ void SystemBus::initialize(bool xdata, bool xaddr,
 void SystemBus::xdata(int from, int to, int opflags) {
   _xdata = false;
   _xaddr = true;
+  _io = true;
   get = from;
   put = to;
   op = opflags;
@@ -69,8 +71,19 @@ void SystemBus::xdata(int from, int to, int opflags) {
 void SystemBus::xaddr(int from, int to, int opflags) {
   _xdata = true;
   _xaddr = false;
+  _io = true;
   get = from;
   put = to;
+  op = opflags;
+  sendEvent(EV_VALUECHANGED);
+}
+
+void SystemBus::io(int reg, int channel, int opflags) {
+  _xdata = true;
+  _xaddr = true;
+  _io = false;
+  get = reg;
+  put = channel;
   op = opflags;
   sendEvent(EV_VALUECHANGED);
 }
@@ -86,14 +99,17 @@ void SystemBus::suspend() {
 }
 
 
-SystemError SystemBus::status() {
-  printf("DATA ADDR  GET PUT OP ACT FLAG\n");
-  printf(" %02x   %02x    %01x   %01x  %01x   %c  %s\n",
+std::ostream & SystemBus::status(std::ostream &os) {
+  os << "DATA ADDR  GET PUT OP ACT FLAG" << std::endl;
+
+  char buf[80];
+  snprintf(buf, 80, " %02x   %02x    %01x   %01x  %01x   %c  %s\n",
          data_bus, addr_bus, get, put, op,
          (_xdata) ? ((_xaddr) ? '_' : 'A') : 'D',
          flagsString().c_str());
-  printf("==============================\n");
-  return NoError;
+  os << buf;
+  os <<"==============================" << std::endl;
+  return os;
 }
 
 void SystemBus::setFlag(ProcessorFlags flag, bool flagValue) {

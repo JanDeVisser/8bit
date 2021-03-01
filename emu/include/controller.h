@@ -7,6 +7,7 @@
 
 #include <vector>
 #include "register.h"
+#include "registers.h"
 #include "systembus.h"
 
 constexpr static byte OP_NONE = 0x00;
@@ -68,7 +69,8 @@ public:
   };
 
 private:
-  byte            step = 0;
+  byte             step = 0;
+  word             m_scratch;
   const MicroCode *microCode;
   MicroCodeRunner *m_runner = nullptr;
   RunMode          m_runMode = Continuous;
@@ -76,9 +78,12 @@ private:
 
 public:
   explicit    Controller(const MicroCode *);
-  std::string name() const override { return "IR"; }
+  std::string name() const override { return "IR";          }
+  virtual int alias() const         { return SCRATCH;       }
+
   std::string instruction() const;
   word        constant() const;
+  word        scratch() const { return m_scratch; }
   int         getStep() const { return step; }
   RunMode     runMode() const { return m_runMode; }
   void        setRunMode(RunMode runMode);
@@ -86,10 +91,10 @@ public:
   int         opcodeForInstruction(std::string &&instr) const { return opcodeForInstruction(instr); }
   int         opcodeForInstruction(const std::string &instr) const;
 
-  SystemError status() override;
-  SystemError reset() override;
-  SystemError onHighClock() override;
-  SystemError onLowClock() override;
+  std::ostream & status(std::ostream &) override;
+  SystemError    reset() override;
+  SystemError    onHighClock() override;
+  SystemError    onLowClock() override;
 
   constexpr static int EV_STEPCHANGED = 0x02;
   constexpr static int EV_AFTERINSTRUCTION = 0x03;
@@ -99,6 +104,7 @@ public:
 
 class MicroCodeRunner {
 private:
+  Controller                            *m_controller;
   SystemBus                             *m_bus;
   const MicroCode                       *mc;
   std::vector<MicroCode::MicroCodeStep>  steps;
@@ -114,7 +120,7 @@ private:
   void fetchAbsoluteWord();
 
 public:
-  MicroCodeRunner(SystemBus *, const MicroCode *);
+  MicroCodeRunner(Controller *, SystemBus *, const MicroCode *);
   SystemError executeNextStep(int step);
   bool        hasStep(int step);
   bool        grabConstant(int step);

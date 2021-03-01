@@ -191,6 +191,16 @@ enum OpCode {
   DEC_SI          = 0x9F,
   DEC_DI          = 0xA0,
 
+  OUT_A           = 0xA1,
+  OUT_B           = 0xA2,
+  OUT_C           = 0xA3,
+  OUT_D           = 0xA4,
+
+  IN_A            = 0xA5,
+  IN_B            = 0xA6,
+  IN_C            = 0xA7,
+  IN_D            = 0xA8,
+
   HLT             = 0xFF
 };
 

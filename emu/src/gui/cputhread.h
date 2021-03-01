@@ -27,14 +27,15 @@ public:
 
 signals:
   void executionStart();
-  void executionEnded();
-  void executionInterrupted();
+  void executionEnded(const QString &);
+  void executionInterrupted(const QString &);
 
 
 private:
-  QThread   *m_thread;
-  BackPlane *m_system;
-  bool       m_running;
+  QThread           *m_thread;
+  BackPlane         *m_system;
+  bool               m_running;
+  std::stringstream  m_status;
 
   void start(Controller::RunMode);
 private slots:

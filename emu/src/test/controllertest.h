@@ -7,6 +7,7 @@
 #include "memory.h"
 #include "controller.h"
 #include "harness.h"
+#include "iochannel.h"
 
 #include "src/cpu/microcode.inc"
 
@@ -16,6 +17,8 @@ constexpr word ROM_START = 0x8000;
 constexpr word ROM_SIZE = 0x2000;
 constexpr word START_VECTOR = ROM_START;
 constexpr word RAM_VECTOR = RAM_START;
+constexpr int CHANNEL_IN = 0x3;
+constexpr int CHANNEL_OUT = 0x5;
 
 
 class TESTNAME : public ::testing::Test, public ComponentListener {
@@ -34,6 +37,11 @@ protected:
   AddressRegister *di = new AddressRegister(Di, "Di");
   ALU *alu = new ALU(RHS, new Register(LHS));
 
+  IOChannel *channelIn = nullptr;
+  IOChannel *channelOut = nullptr;
+  byte inValue;
+  byte outValue;
+
   void SetUp() override {
     system = new Harness();
     system -> insert(mem);
@@ -49,6 +57,16 @@ protected:
     system -> insert(di);
     system -> insert(alu);
     system -> insert(alu -> lhs());
+
+    channelIn = new IOChannel(CHANNEL_IN, "IN", [this]() {
+      return inValue;
+    });
+    channelOut = new IOChannel(CHANNEL_OUT, "OUT", [this](byte v) {
+      outValue = v;
+    });
+    system -> insertIO(channelIn);
+    system -> insertIO(channelOut);
+
     c -> setListener(this);
 //    system -> printStatus = true;
   }

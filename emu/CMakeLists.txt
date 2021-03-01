@@ -40,12 +40,13 @@ add_library(emucomponents STATIC
         include/clock.h src/cpu/clock.cpp
         include/component.h src/cpu/component.cpp
         include/controller.h src/cpu/controller.cpp
-        include/systembus.h src/cpu/systembusview.cpp
+        include/systembus.h src/cpu/systembus.cpp
         include/harness.h
         include/addressregister.h src/cpu/addressregister.cpp
         include/memory.h src/cpu/memory.cpp
         include/register.h src/cpu/register.cpp
         src/cpu/microcode.inc include/registers.h
+        src/cpu/iochannel.cpp include/iochannel.h
         include/opcodes.h)
 
 add_executable(emu
@@ -93,6 +94,8 @@ add_executable(
         src/test/stack.cpp
         src/test/arithmetic.cpp
         src/test/jump.cpp
+        src/test/io.cpp
+        src/test/inout.cpp
 )
 
 target_link_libraries(emu_test emucomponents ${GTEST_LDFLAGS})

@@ -1,7 +1,3 @@
-//
-// Created by jan on 2021-01-25.
-//
-
 #ifndef EMU_REGISTER_H
 #define EMU_REGISTER_H
 
@@ -17,10 +13,10 @@ public:
   void        setValue(byte val);
   int         getValue() const override { return value; }
 
-  SystemError status() override;
-  SystemError reset() override;
-  SystemError onRisingClockEdge() override;
-  SystemError onHighClock() override;
+  std::ostream & status(std::ostream &) override;
+  SystemError    reset() override;
+  SystemError    onRisingClockEdge() override;
+  SystemError    onHighClock() override;
 
 };
 

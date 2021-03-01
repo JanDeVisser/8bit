@@ -9,13 +9,13 @@ public:
   Clock clock;
   int max_cycles = -1;
   int cycles = 0;
-  int state;
+  int state = 0;
 
   TestSystem() : clock(this, 1) { }
 
-  SystemError status() override {
+  std::ostream & status(std::ostream &os) override {
 //    std::cout << "status" << std::endl;
-    return NoError;
+    return os;
   }
 
   SystemError reset() override {

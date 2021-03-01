@@ -19,9 +19,11 @@ ALU::ALU(int ident, Register *lhs) : Register(ident), m_lhs(lhs) {
   //
 }
 
-SystemError ALU::status() {
-  printf("%1x. LHS %02x  %1x. RHS %02x\n", lhs() -> id(), lhs() -> getValue(), id(), getValue());
-  return NoError;
+std::ostream & ALU::status(std::ostream &os) {
+  char buf[80];
+  snprintf(buf, 80, "%1x. LHS %02x  %1x. RHS %02x", lhs() -> id(), lhs() -> getValue(), id(), getValue());
+  os << buf << std::endl;
+  return os;
 }
 
 SystemError ALU::onHighClock() {

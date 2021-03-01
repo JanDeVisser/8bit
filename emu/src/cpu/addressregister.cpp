@@ -10,10 +10,11 @@ void AddressRegister::setValue(word val) {
   sendEvent(EV_VALUECHANGED);
 }
 
-
-SystemError AddressRegister::status() {
-  printf("%1x. %2s %04x\n", id(), name().c_str(), value);
-  return NoError;
+std::ostream & AddressRegister::status(std::ostream &os) {
+  char buf[80];
+  snprintf(buf, 80, "%1x. %2s  %04x\n", id(), name().c_str(), value);
+  os << buf;
+  return os;
 }
 
 SystemError AddressRegister::reset() {

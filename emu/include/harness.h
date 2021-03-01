@@ -45,35 +45,47 @@ public:
   SystemError status(const std::string &msg, int num) {
     if (!printStatus) return NoError;
     std::cout << "Cycle " << num << " " << msg << std::endl;
-    auto err = bus().status();
-    if (err == NoError) {
-      err = forAllComponents([](Component *c) -> SystemError {
-        return c -> status();
+    bus().status(std::cout);
+    if (error(bus().error()) == NoError) {
+      forAllComponents([](Component *c) -> SystemError {
+        c -> status(std::cout);
+        return c->error();
       });
     }
-    return err;
+    return error();
   }
 
-  SystemError onRisingClockEdge() {
-    return forAllComponents([](Component *c) -> SystemError {
+  SystemError onClockEvent(const ComponentHandler& handler) {
+    if (error() != NoError) {
+      return error();
+    }
+    error(forAllComponents(handler));
+    if (error() == NoError) {
+      error(forAllChannels(handler));
+    }
+    return error();
+  }
+
+  SystemError onRisingClockEdge() override {
+    return onClockEvent([](Component *c) -> SystemError {
       return c -> onRisingClockEdge();
     });
   }
 
-  SystemError onHighClock() {
-    return forAllComponents([](Component *c) -> SystemError {
+  SystemError onHighClock() override {
+    return onClockEvent([](Component *c) -> SystemError {
       return c -> onHighClock();
     });
   }
 
-  SystemError onFallingClockEdge() {
-    return forAllComponents([](Component *c) -> SystemError {
+  SystemError onFallingClockEdge() override {
+    return onClockEvent([](Component *c) -> SystemError {
       return c -> onFallingClockEdge();
     });
   }
 
-  SystemError onLowClock() {
-    return forAllComponents([](Component *c) -> SystemError {
+  SystemError onLowClock() override {
+    return onClockEvent([](Component *c) -> SystemError {
       return c -> onLowClock();
     });
   }
@@ -94,10 +106,15 @@ public:
     return err;
   }
 
+  SystemError cycle(bool xdata, bool xaddr, bool io, byte getReg, byte putReg, byte opflags_val,
+                    byte data_bus_val = 0x00, byte addr_bus_val = 0x00) {
+    bus().initialize(xdata, xaddr, io, getReg, putReg, opflags_val, data_bus_val, addr_bus_val);
+    return cycle(0);
+  }
+
   SystemError cycle(bool xdata, bool xaddr, byte getReg, byte putReg, byte opflags_val,
                     byte data_bus_val = 0x00, byte addr_bus_val = 0x00) {
-    bus().initialize(xdata, xaddr, getReg, putReg, opflags_val, data_bus_val, addr_bus_val);
-    return cycle(0);
+    return cycle(xdata, xaddr, true, getReg, putReg, opflags_val, data_bus_val, addr_bus_val);
   }
 };
 

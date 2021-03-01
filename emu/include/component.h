@@ -30,24 +30,35 @@ public:
 class Component {
 private:
   ComponentListener *  listener = nullptr;
+  SystemError          m_error = NoError;
 
 protected:
   void                 sendEvent(int);
+  SystemError error(SystemError err) {
+    m_error = err;
+    return m_error;
+  }
+
+
 public:
-  virtual             ~Component() = default;
+  virtual                ~Component() = default;
 
   constexpr static int EV_VALUECHANGED = 0;
 
-  ComponentListener *  setListener(ComponentListener *);
-  virtual SystemError  status() { return NoError; }
-  virtual SystemError  reset() { return NoError; }
-  virtual SystemError  onRisingClockEdge() { return NoError; }
-  virtual SystemError  onHighClock() { return NoError; }
-  virtual SystemError  onFallingClockEdge() { return NoError; }
-  virtual SystemError  onLowClock() { return NoError; }
+  ComponentListener *    setListener(ComponentListener *);
+  SystemError            error() const { return m_error; }
+
+  virtual std::ostream & status(std::ostream &os) { return os; }
+  virtual SystemError    reset() { return error(NoError); }
+  virtual SystemError    onRisingClockEdge() { return error(NoError); }
+  virtual SystemError    onHighClock() { return error(NoError); }
+  virtual SystemError    onFallingClockEdge() { return error(NoError); }
+  virtual SystemError    onLowClock() { return error(NoError); }
+
+  friend std::ostream & operator << (std::ostream &, Component &);
 };
 
-typedef std::function<SystemError(Component *)> ComponentHandler;
+typedef std::function<void(Component *)> ComponentHandler;
 
 
 #endif //EMU_COMPONENT_H

@@ -9,8 +9,8 @@
 #include "register.h"
 #include "registers.h"
 
-MicroCodeRunner::MicroCodeRunner(SystemBus *bus, const MicroCode *microCode)  :
-    m_bus(bus), mc(microCode), steps() {
+MicroCodeRunner::MicroCodeRunner(Controller *controller, SystemBus *bus, const MicroCode *microCode)  :
+    m_controller(controller), m_bus(bus), mc(microCode), steps() {
 
   evaluateCondition();
   fetchSteps();
@@ -131,12 +131,17 @@ bool MicroCodeRunner::grabConstant(int step) {
 
 SystemError MicroCodeRunner::executeNextStep(int step) {
   MicroCode::MicroCodeStep s = steps[step];
+  byte src = (s.src != DEREFSCRATCH) ? s.src : m_controller -> scratch();
+  byte target = (s.target != DEREFSCRATCH) ? s.target : m_controller -> scratch();
   switch (s.action) {
     case MicroCode::XDATA:
-      m_bus -> xdata(s.src, s.target, s.opflags & SystemBus::Mask);
+      m_bus -> xdata(src, target, s.opflags & SystemBus::Mask);
       break;
     case MicroCode::XADDR:
-      m_bus->xaddr(s.src, s.target, s.opflags & SystemBus::Mask);
+      m_bus->xaddr(src, target, s.opflags & SystemBus::Mask);
+      break;
+    case MicroCode::IO:
+      m_bus->io(src, target, s.opflags & SystemBus::Mask);
       break;
     case MicroCode::OTHER:
       switch (s.opflags & SystemBus::Mask) {
@@ -204,9 +209,11 @@ void Controller::setRunMode(RunMode runMode) {
   m_runMode = runMode;
 }
 
-SystemError Controller::status() {
-  printf("%1x. IR %02x %04x %-15.15s Step %d\n", id(), getValue(), constant(), instruction().c_str(), step);
-  return NoError;
+std::ostream & Controller::status(std::ostream &os) {
+  char buf[80];
+  snprintf(buf, 80, "%1x. IR %02x %04x %-15.15s Step %d", id(), getValue(), constant(), instruction().c_str(), step);
+  os << buf << std::endl;
+  return os;
 }
 
 SystemError Controller::reset() {
@@ -216,12 +223,19 @@ SystemError Controller::reset() {
 }
 
 SystemError Controller::onHighClock() {
-  this -> Register::onHighClock();
+  if (bus()->putID() == SCRATCH) {
+    if (!bus()->xdata()) {
+      m_scratch = bus()->readDataBus();
+    } else if (!bus()->xaddr()) {
+      m_scratch = bus()->readDataBus();
+      m_scratch |= ((word) bus()->readAddrBus()) << 8;
+    }
+  } else {
+    this -> Register::onHighClock();
+  }
   m_suspended++;
-  if (m_runner) {
-    if (m_runner -> grabConstant(step - 2)) {
-      sendEvent(EV_VALUECHANGED);
-    };
+  if (m_runner && m_runner -> grabConstant(step - 2)) {
+    sendEvent(EV_VALUECHANGED);
   }
   return NoError;
 }
@@ -253,7 +267,7 @@ SystemError Controller::onLowClock() {
                   << std::endl;
         return InvalidMicroCode;
       } else {
-        m_runner = new MicroCodeRunner(bus(), mc);
+        m_runner = new MicroCodeRunner(this, bus(), mc);
       }
       // fall through:
     default:

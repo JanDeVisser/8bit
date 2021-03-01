@@ -53,16 +53,18 @@ void Memory::initialize(word address, word size, const byte *contents) {
 }
 
 
-SystemError Memory::status() {
-  printf("%1x. M  %04x   CONTENTS %1x. [%02x]\n", id(), getValue(),
+std::ostream & Memory::status(std::ostream &os) {
+  char buf[80];
+  snprintf(buf, 80, "%1x. M  %04x   CONTENTS %1x. [%02x]", id(), getValue(),
          MEM_ID, (isMapped(getValue()) ? (*this)[getValue()] : 0xFF));
-  return NoError;
+  os << buf << std::endl;
+  return os;
 }
 
 SystemError Memory::onRisingClockEdge() {
   if (!bus()->xdata() && (bus()->getID() == MEM_ID)) {
     if (!isMapped(getValue())) {
-      return ProtectedMemory;
+      return error(ProtectedMemory);
     }
     bus()->putOnDataBus((*this)[getValue()]);
   }
@@ -72,7 +74,7 @@ SystemError Memory::onRisingClockEdge() {
 SystemError Memory::onHighClock() {
   if (!bus()->xdata() && (bus()->putID() == MEM_ID)) {
     if (!inRAM(getValue())) {
-      return ProtectedMemory;
+      return error(ProtectedMemory);
     }
     (*this)[getValue()] = bus()->readDataBus();
     sendEvent(EV_CONTENTSCHANGED);

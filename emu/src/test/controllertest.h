@@ -41,6 +41,8 @@ protected:
   IOChannel *channelOut = nullptr;
   byte inValue;
   byte outValue;
+  word nmiAt = 0xFFFF;
+  bool nmiHit = false;
 
   void SetUp() override {
     system = new Harness();
@@ -78,6 +80,12 @@ protected:
   void componentEvent(Component *sender, int ev) {
     if (system -> printStatus && (ev == Controller::EV_AFTERINSTRUCTION)) {
       system -> status("After Instruction", 0);
+      if (nmiAt == pc->getValue()) {
+        nmiHit = true;
+      } else if (nmiHit) {
+        system -> bus().setNmi();
+        nmiHit = false;
+      }
     }
   }
 

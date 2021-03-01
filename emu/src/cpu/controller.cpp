@@ -9,6 +9,40 @@
 #include "register.h"
 #include "registers.h"
 
+
+static MicroCode mcNMI = {
+  .opcode = 0xFE, .instruction = "__nmi", .addressingMode = Immediate,
+  .steps = {
+    { .action = MicroCode::XADDR, .src = SP, .target = MEMADDR, .opflags = SystemBus::Inc },
+    { .action = MicroCode::XDATA, .src = GP_A, .target = MEM, .opflags = SystemBus::None },
+    { .action = MicroCode::XADDR, .src = SP, .target = MEMADDR, .opflags = SystemBus::Inc },
+    { .action = MicroCode::XDATA, .src = GP_B, .target = MEM, .opflags = SystemBus::None },
+    { .action = MicroCode::XADDR, .src = SP, .target = MEMADDR, .opflags = SystemBus::Inc },
+    { .action = MicroCode::XDATA, .src = GP_C, .target = MEM, .opflags = SystemBus::None },
+    { .action = MicroCode::XADDR, .src = SP, .target = MEMADDR, .opflags = SystemBus::Inc },
+    { .action = MicroCode::XDATA, .src = GP_D, .target = MEM, .opflags = SystemBus::None },
+
+    { .action = MicroCode::XADDR, .src = SP, .target = MEMADDR, .opflags = SystemBus::Inc },
+    { .action = MicroCode::XDATA, .src = Si, .target = MEM, .opflags = SystemBus::None },
+    { .action = MicroCode::XADDR, .src = SP, .target = MEMADDR, .opflags = SystemBus::Inc },
+    { .action = MicroCode::XDATA, .src = Si, .target = MEM, .opflags = SystemBus::MSB },
+
+    { .action = MicroCode::XADDR, .src = SP, .target = MEMADDR, .opflags = SystemBus::Inc },
+    { .action = MicroCode::XDATA, .src = Di, .target = MEM, .opflags = SystemBus::None },
+    { .action = MicroCode::XADDR, .src = SP, .target = MEMADDR, .opflags = SystemBus::Inc },
+    { .action = MicroCode::XDATA, .src = Di, .target = MEM, .opflags = SystemBus::MSB },
+
+    // Push the return address:
+    { .action = MicroCode::XADDR, .src = SP, .target = MEMADDR, .opflags = SystemBus::Inc },
+    { .action = MicroCode::XDATA, .src = PC, .target = MEM, .opflags = SystemBus::None },
+    { .action = MicroCode::XADDR, .src = SP, .target = MEMADDR, .opflags = SystemBus::Inc },
+    { .action = MicroCode::XDATA, .src = PC, .target = MEM, .opflags = SystemBus::MSB},
+
+    // Load PC with the subroutine address:
+    { .action = MicroCode::XADDR, .src = CONTROLLER, .target = PC, .opflags = SystemBus::Done },
+  }
+};
+
 MicroCodeRunner::MicroCodeRunner(Controller *controller, SystemBus *bus, const MicroCode *microCode)  :
     m_controller(controller), m_bus(bus), mc(microCode), steps() {
 
@@ -100,7 +134,6 @@ void MicroCodeRunner::fetchAbsoluteWord() {
 }
 
 bool MicroCodeRunner::grabConstant(int step) {
-  bool last = false;
   switch (mc -> addressingMode & Mask) {
     case Immediate:
       m_complete = (step == 1);
@@ -131,8 +164,8 @@ bool MicroCodeRunner::grabConstant(int step) {
 
 SystemError MicroCodeRunner::executeNextStep(int step) {
   MicroCode::MicroCodeStep s = steps[step];
-  byte src = (s.src != DEREFSCRATCH) ? s.src : m_controller -> scratch();
-  byte target = (s.target != DEREFSCRATCH) ? s.target : m_controller -> scratch();
+  byte src = (s.src != DEREFCONTROLLER) ? s.src : m_controller -> scratch();
+  byte target = (s.target != DEREFCONTROLLER) ? s.target : m_controller -> scratch();
   switch (s.action) {
     case MicroCode::XDATA:
       m_bus -> xdata(src, target, s.opflags & SystemBus::Mask);
@@ -146,7 +179,6 @@ SystemError MicroCodeRunner::executeNextStep(int step) {
     case MicroCode::OTHER:
       switch (s.opflags & SystemBus::Mask) {
         case SystemBus::Halt:
-//        std::cerr << "Halting system" << std::endl;
           m_bus->stop();
           break;
         default:
@@ -218,17 +250,31 @@ std::ostream & Controller::status(std::ostream &os) {
 
 SystemError Controller::reset() {
   step = 0;
-  this -> Register::reset();
+  Register::reset();
+  return NoError;
+}
+
+SystemError Controller::onRisingClockEdge() {
+  if (bus()->getID() == CONTROLLER) {
+    if (!bus()->xdata()) {
+      bus()->putOnDataBus(scratch());
+    } else if (!bus()->xaddr()) {
+      bus()->putOnDataBus(m_interruptVector & 0x00FF);
+      bus()->putOnAddrBus((m_interruptVector & 0xFF00) >> 8);
+    }
+  } else {
+    this -> Register::onRisingClockEdge();
+  }
   return NoError;
 }
 
 SystemError Controller::onHighClock() {
-  if (bus()->putID() == SCRATCH) {
+  if (bus()->putID() == CONTROLLER) {
     if (!bus()->xdata()) {
       m_scratch = bus()->readDataBus();
     } else if (!bus()->xaddr()) {
-      m_scratch = bus()->readDataBus();
-      m_scratch |= ((word) bus()->readAddrBus()) << 8;
+      m_interruptVector = bus()->readDataBus();
+      m_interruptVector |= ((word) bus()->readAddrBus()) << 8;
     }
   } else {
     this -> Register::onHighClock();
@@ -258,17 +304,21 @@ SystemError Controller::onLowClock() {
       m_suspended = 0;
       break;
     case 2:
-      mc = microCode + getValue();
-      if (!mc -> opcode) {
-        m_runner = nullptr;
-      } else if (mc->opcode != getValue()) {
-        std::cerr << "Microcode mismatch for opcode " << std::hex << getValue()
-                  << ": 'opcode' field contains " << std::hex << mc->opcode
-                  << std::endl;
-        return InvalidMicroCode;
+      if (!bus()->nmi()) {
+        mc = &mcNMI;
+        bus()->clearNmi();
       } else {
-        m_runner = new MicroCodeRunner(this, bus(), mc);
+        mc = microCode + getValue();
+        if (!mc -> opcode) {
+          m_runner = nullptr;
+        } else if (mc->opcode != getValue()) {
+          std::cerr << "Microcode mismatch for opcode " << std::hex << getValue()
+                    << ": 'opcode' field contains " << std::hex << mc->opcode
+                    << std::endl;
+          return InvalidMicroCode;
+        }
       }
+      m_runner = (mc -> opcode) ? new MicroCodeRunner(this, bus(), mc) : nullptr;
       // fall through:
     default:
       if (m_runner && m_runner -> hasStep(step - 2)) {
@@ -281,11 +331,15 @@ SystemError Controller::onLowClock() {
         }
       } else {
         sendEvent(EV_AFTERINSTRUCTION);
-        step = 0;
         delete m_runner;
         m_runner = nullptr;
         setValue(0);
-        bus()->xaddr(PC, MEMADDR, SystemBus::Inc);
+        if (!bus()->nmi()) {
+          step = 1;
+        } else {
+          step = 0;
+          bus()->xaddr(PC, MEMADDR, SystemBus::Inc);
+        }
       }
       break;
   }

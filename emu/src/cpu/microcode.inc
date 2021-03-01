@@ -7,23 +7,23 @@
 
 #define PUSH_REG(reg, opflag) \
   { .action = MicroCode::XADDR, .src = SP, .target = MEMADDR, .opflags = SystemBus::Inc }, \
-  { .action = MicroCode::XDATA, .src = reg, .target = MEM, .opflags = opflag },
+  { .action = MicroCode::XDATA, .src = reg, .target = MEM, .opflags = opflag }
 
 #define POP_REG(reg, opflag) \
   { .action = MicroCode::XADDR, .src = SP, .target = MEMADDR, .opflags = SystemBus::Dec }, \
-  { .action = MicroCode::XDATA, .src = MEM, .target = reg, .opflags = opflag },
+  { .action = MicroCode::XDATA, .src = MEM, .target = reg, .opflags = opflag }
 
 #define PUSH_ADDR(reg, opflag) \
   { .action = MicroCode::XADDR, .src = SP, .target = MEMADDR, .opflags = SystemBus::Inc }, \
   { .action = MicroCode::XDATA, .src = reg, .target = MEM, .opflags = SystemBus::None }, \
   { .action = MicroCode::XADDR, .src = SP, .target = MEMADDR, .opflags = SystemBus::Inc }, \
-  { .action = MicroCode::XDATA, .src = reg, .target = MEM, .opflags = SystemBus::MSB | opflag }, \
+  { .action = MicroCode::XDATA, .src = reg, .target = MEM, .opflags = SystemBus::MSB | opflag }
 
 #define POP_ADDR(reg, opflag) \
   { .action = MicroCode::XADDR, .src = SP, .target = MEMADDR, .opflags = SystemBus::Dec }, \
   { .action = MicroCode::XDATA, .src = MEM, .target = reg, .opflags = SystemBus::MSB }, \
   { .action = MicroCode::XADDR, .src = SP, .target = MEMADDR, .opflags = SystemBus::Dec }, \
-  { .action = MicroCode::XDATA, .src = MEM, .target = reg, .opflags = opflag },
+  { .action = MicroCode::XDATA, .src = MEM, .target = reg, .opflags = opflag }
 
 
 #define ALU_OP(op, instr, lhs, rhs, aluOp) \
@@ -79,17 +79,17 @@
 
 #define OUT(op, instr, reg) \
   { \
-    .opcode = op, .instruction = instr,  .addressingMode = DirectByte, .target = SCRATCH, \
+    .opcode = op, .instruction = instr,  .addressingMode = DirectByte, .target = CONTROLLER, \
     .steps = { \
-      { .action = MicroCode::IO, .src = reg, .target = DEREFSCRATCH, .opflags = SystemBus::IOOut | SystemBus::Done }, \
+      { .action = MicroCode::IO, .src = reg, .target = DEREFCONTROLLER, .opflags = SystemBus::IOOut | SystemBus::Done }, \
     } \
   }
 
 #define IN(op, instr, reg) \
   { \
-    .opcode = op, .instruction = instr,  .addressingMode = DirectByte, .target = SCRATCH, \
+    .opcode = op, .instruction = instr,  .addressingMode = DirectByte, .target = CONTROLLER, \
     .steps = { \
-      { .action = MicroCode::IO, .src = reg, .target = DEREFSCRATCH, .opflags = SystemBus::IOIn | SystemBus::Done }, \
+      { .action = MicroCode::IO, .src = reg, .target = DEREFCONTROLLER, .opflags = SystemBus::IOIn | SystemBus::Done }, \
     } \
   }
 
@@ -385,7 +385,7 @@ static MicroCode mc[256] = {
       // TX Contains the address to jump to. PC has the address to return to (one past the address)
 
       // Push the return address:
-      PUSH_ADDR(PC, SystemBus::None)
+      PUSH_ADDR(PC, SystemBus::None),
 
       // Load PC with the subroutine address:
       { .action = MicroCode::XADDR, .src = TX, .target = PC, .opflags = SystemBus::Done },
@@ -714,7 +714,7 @@ static MicroCode mc[256] = {
       { .action = MicroCode::XDATA, .src = MEM, .target = TX, .opflags = SystemBus::MSB },
 
       // Push the return address:
-      PUSH_ADDR(PC, SystemBus::None)
+      PUSH_ADDR(PC, SystemBus::None),
 
       // Load PC with the subroutine address:
       { .action = MicroCode::XADDR, .src = TX, .target = MEMADDR, .opflags = SystemBus::Inc },
@@ -790,7 +790,26 @@ static MicroCode mc[256] = {
   { /* 229 */ }, { /* 230 */ }, { /* 231 */ }, { /* 232 */ }, { /* 233 */ }, { /* 234 */ }, { /* 235 */ }, { /* 236 */ },
   { /* 237 */ }, { /* 238 */ }, { /* 239 */ }, { /* 240 */ }, { /* 241 */ }, { /* 242 */ }, { /* 243 */ }, { /* 244 */ },
   { /* 245 */ }, { /* 246 */ }, { /* 247 */ }, { /* 248 */ }, { /* 249 */ }, { /* 250 */ }, { /* 251 */ }, { /* 252 */ },
-  { /* 253 */ }, { /* 254 */ },
+
+  {
+    .opcode = RTI, .instruction = "rti", .addressingMode = Immediate,
+    .steps = {
+      POP_ADDR(PC, SystemBus::None),
+      POP_ADDR(Di, SystemBus::None),
+      POP_ADDR(Si, SystemBus::None),
+      POP_REG(GP_D, SystemBus::None),
+      POP_REG(GP_C, SystemBus::None),
+      POP_REG(GP_B, SystemBus::None),
+      POP_REG(GP_A, SystemBus::Done),
+    }
+  },
+
+  {
+    .opcode = NMIVEC, .instruction = "nmi #%04x", .addressingMode = DirectWord, .target = TX,
+    .steps = {
+      { .action = MicroCode::XADDR, .src = TX, .target = CONTROLLER, .opflags = SystemBus::Done }, \
+    }
+  },
 
   {
     .opcode = HLT, .instruction = "hlt",

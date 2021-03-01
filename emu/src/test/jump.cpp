@@ -121,3 +121,49 @@ TEST_F(TESTNAME, call_abs) {
   ASSERT_EQ(gp_a -> getValue(), 0x42);
 }
 
+
+
+const byte asm_nmi[] = {
+  /* 8000 */ NMIVEC, 0x15, 0x80,       //  4 cycles
+  /* 8003 */ MOV_A_CONST, 0x30,        //  4 cycles
+  /* 8005 */ MOV_B_CONST, 0x31,        //  4 cycles
+  /* 8007 */ MOV_C_CONST, 0x32,        //  4 cycles
+  /* 8009 */ MOV_D_CONST, 0x33,        //  4 cycles
+  /* 800B */ MOV_SI_CONST, 0x34, 0x35, //  6 cycles
+  /* 800E */ MOV_DI_CONST, 0x36, 0x37, //  6 cycles
+  /* 8011 */ NOP,                      //  3
+             // CALL NMI               // 21
+  /* 8012 */ MOV_A_CONST, 0x38,        //  4 cycles
+  /* 8014 */ HLT,                      //  6
+  /* 8015 */ MOV_A_CONST, 0x40,        //  4 cycles
+  /* 8017 */ MOV_B_CONST, 0x41,        //  4 cycles
+  /* 8019 */ MOV_C_CONST, 0x42,        //  4 cycles
+  /* 801B */ MOV_D_CONST, 0x43,        //  4 cycles
+  /* 801D */ MOV_SI_CONST, 0x44, 0x45, //  6 cycles
+  /* 8020 */ MOV_DI_CONST, 0x46, 0x47, //  6 cycles
+  /* 8023 */ RTI                       // 22
+};                                     // Total: 116
+
+TEST_F(TESTNAME, nmi) {
+  mem -> initialize(ROM_START, 36, asm_nmi);
+  ASSERT_EQ((*mem)[START_VECTOR], NMIVEC);
+
+  sp -> setValue(RAM_START);
+  ASSERT_EQ(sp -> getValue(), RAM_START);
+
+  pc -> setValue(START_VECTOR);
+  ASSERT_EQ(pc -> getValue(), START_VECTOR);
+
+  nmiAt = 0x8011;
+  auto cycles = system -> run(true);
+  ASSERT_EQ(system -> error(), NoError);
+  ASSERT_EQ(cycles, 116);
+  ASSERT_EQ(system -> bus().halt(), false);
+  ASSERT_EQ(gp_a -> getValue(), 0x38);
+  ASSERT_EQ(gp_b -> getValue(), 0x31);
+  ASSERT_EQ(gp_c -> getValue(), 0x32);
+  ASSERT_EQ(gp_d -> getValue(), 0x33);
+  ASSERT_EQ(si -> getValue(), 0x3534);
+  ASSERT_EQ(di -> getValue(), 0x3736);
+}
+

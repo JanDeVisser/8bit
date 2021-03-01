@@ -5,10 +5,6 @@
 
 typedef std::function<byte()> Input;
 typedef std::function<void(byte)> Output;
-typedef std::function<void(void)> Reset;
-typedef std::function<void(std::ostream &)> Status;
-
-typedef std::function<SystemError()> ClockEvent;
 
 class IOChannel : public ConnectedComponent {
 private:

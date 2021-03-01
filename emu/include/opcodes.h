@@ -201,6 +201,8 @@ enum OpCode {
   IN_C            = 0xA7,
   IN_D            = 0xA8,
 
+  RTI             = 0xFD,
+  NMIVEC          = 0xFE,
   HLT             = 0xFF
 };
 

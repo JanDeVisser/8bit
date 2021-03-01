@@ -13,7 +13,7 @@ void SystemBus::_reset() {
   data_bus = 0;
   addr_bus = 0;
   _sus = true;
-  _sack = true;
+  _nmi = true;
   rst = false;
   _io = true;
   _halt = true;

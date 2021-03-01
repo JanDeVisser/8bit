@@ -10,11 +10,6 @@
 #include "registers.h"
 #include "systembus.h"
 
-constexpr static byte OP_NONE = 0x00;
-constexpr static byte OP_DONE = 0xF0;
-constexpr static byte OP_MASK = 0x0F;
-constexpr static byte OP_HALT = 0x0F;
-
 enum AddressingMode {
   Immediate     = 0x00,
   ImmediateByte = 0x01,
@@ -55,7 +50,7 @@ struct MicroCode {
   byte            target;
   byte            condition;
   Op              condition_op;
-  MicroCodeStep   steps[16];
+  MicroCodeStep   steps[24];
 };
 
 class MicroCodeRunner;
@@ -70,7 +65,8 @@ public:
 
 private:
   byte             step = 0;
-  word             m_scratch;
+  byte             m_scratch = 0;
+  word             m_interruptVector = 0xFFFF;
   const MicroCode *microCode;
   MicroCodeRunner *m_runner = nullptr;
   RunMode          m_runMode = Continuous;
@@ -78,14 +74,15 @@ private:
 
 public:
   explicit    Controller(const MicroCode *);
-  std::string name() const override { return "IR";          }
-  virtual int alias() const         { return SCRATCH;       }
+  std::string name() const override   { return "IR";              }
+  int         alias() const override  { return CONTROLLER;           }
 
   std::string instruction() const;
   word        constant() const;
-  word        scratch() const { return m_scratch; }
-  int         getStep() const { return step; }
-  RunMode     runMode() const { return m_runMode; }
+  byte        scratch() const         { return m_scratch;         }
+  word        interruptVector() const { return m_interruptVector; }
+  int         getStep() const         { return step;              }
+  RunMode     runMode() const         { return m_runMode;         }
   void        setRunMode(RunMode runMode);
   std::string instructionWithOpcode(int) const;
   int         opcodeForInstruction(std::string &&instr) const { return opcodeForInstruction(instr); }
@@ -93,8 +90,10 @@ public:
 
   std::ostream & status(std::ostream &) override;
   SystemError    reset() override;
+  SystemError    onRisingClockEdge() override;
   SystemError    onHighClock() override;
   SystemError    onLowClock() override;
+  void           NMI();
 
   constexpr static int EV_STEPCHANGED = 0x02;
   constexpr static int EV_AFTERINSTRUCTION = 0x03;

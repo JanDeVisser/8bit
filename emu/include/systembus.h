@@ -4,6 +4,10 @@
 #include <vector>
 #include "component.h"
 
+typedef std::function<void(void)> Reset;
+typedef std::function<void(std::ostream &)> Status;
+typedef std::function<SystemError()> ClockEvent;
+
 class ComponentContainer;
 
 class SystemBus : public Component {
@@ -16,7 +20,7 @@ private:
   byte                op = 0;
   bool                _halt = true;
   bool                _sus = true;
-  bool                _sack = true;
+  bool                _nmi = true;
   bool                _xdata = true;
   bool                _xaddr = true;
   bool                rst = false;
@@ -41,9 +45,9 @@ public:
     Dec       = 0x02,
     Flags     = 0x04,
     MSB       = 0x08,
+    Halt      = 0x08,
     IOOut     = 0x08,
     Mask      = 0x0F,
-    Halt      = 0x0F,
     Done      = 0x10,
   };
                    explicit SystemBus(ComponentContainer &);
@@ -52,15 +56,18 @@ public:
   void             putOnDataBus(byte);
   byte             readAddrBus() const;
   void             putOnAddrBus(byte);
-  bool             xdata() const { return _xdata; }
-  bool             xaddr() const { return _xaddr; }
-  bool             io() const { return _io; }
-  bool             halt() const { return _halt; }
-  bool             sus() const { return _sus; }
-  void             clearSus() { _sus = true; }
-  byte             putID() const { return put; }
-  byte             getID() const { return get; }
-  byte             opflags() const { return op; }
+  bool             xdata() const   { return _xdata; }
+  bool             xaddr() const   { return _xaddr; }
+  bool             io() const      { return _io;    }
+  bool             halt() const    { return _halt;  }
+  bool             sus() const     { return _sus;   }
+  void             clearSus()      { _sus = true;   }
+  bool             nmi() const     { return _nmi;   }
+  void             setNmi()        { _nmi = false;  }
+  void             clearNmi()      { _nmi = true;   }
+  byte             putID() const   { return put;    }
+  byte             getID() const   { return get;    }
+  byte             opflags() const { return op;     }
 
   void             initialize(bool, bool, bool, byte, byte, byte, byte = 0x00, byte = 0x00);
   void             xdata(int, int, int);

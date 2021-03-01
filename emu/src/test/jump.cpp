@@ -155,7 +155,7 @@ TEST_F(TESTNAME, nmi) {
   ASSERT_EQ(pc -> getValue(), START_VECTOR);
 
   nmiAt = 0x8011;
-  auto cycles = system -> run(true);
+  auto cycles = system -> run();
   ASSERT_EQ(system -> error(), NoError);
   ASSERT_EQ(cycles, 116);
   ASSERT_EQ(system -> bus().halt(), false);

@@ -24,7 +24,7 @@ constexpr int CHANNEL_OUT = 0x5;
 class TESTNAME : public ::testing::Test, public ComponentListener {
 protected:
   Harness *system = nullptr;
-  Memory *mem = new Memory(RAM_START, RAM_SIZE, ROM_START, ROM_SIZE, nullptr);
+  Memory *mem = new Memory(RAM_START, RAM_SIZE, ROM_START, ROM_SIZE);
   Controller *c = new Controller(mc);
   Register *gp_a = new Register(0x0);
   Register *gp_b = new Register(0x1);

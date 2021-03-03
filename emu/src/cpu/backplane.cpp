@@ -7,7 +7,7 @@
 
 #include "microcode.inc"
 
-byte mem[] = {
+static byte mem[] = {
   /* 0x0000 */ CLR_A,
   /* 0x0001 */ CLR_B,
   /* 0x0002 */ MOV_C_CONST, 0x01,
@@ -21,9 +21,8 @@ byte mem[] = {
   /* 0x000F */ MOV_DI_CD,
   /* 0x0010 */ HLT
 };
-MemImage image = {
-  .address = 0x00, .size = 0x11, .contents = mem
-};
+
+static MemoryBank image{0x00, 0x11, true, mem};
 
 BackPlane::BackPlane() : clock(this, 1.0) {
 }
@@ -42,7 +41,7 @@ void BackPlane::defaultSetup() {
   insert(new AddressRegister(Si, "Si"));  // 0x0A
   insert(new AddressRegister(Di, "Di"));  // 0x0B
   insert(new AddressRegister(TX, "TX"));  // 0x0C
-  insert(new Memory(0x0000, 0x8000, 0x8000, 0x8000, &image));    // 0x0F
+  insert(new Memory(0x0000, 0x8000, 0x8000, 0x8000, image));    // 0x0F
 }
 
 Controller::RunMode BackPlane::runMode() const {
@@ -64,8 +63,8 @@ Memory * BackPlane::memory() const {
 }
 
 void BackPlane::loadImage(word sz, const byte *data) {
-  image = MemImage(0x0000, sz, data);
-  memory() -> initialize(&image);
+  image = MemoryBank(0x0000, sz, true, data);
+  memory() -> initialize(image);
   reset();
 }
 

@@ -201,6 +201,10 @@ enum OpCode {
   IN_C            = 0xA7,
   IN_D            = 0xA8,
 
+  PUSH_FLAGS      = 0xA9,
+  POP_FLAGS       = 0xAA,
+  CLR_FLAGS       = 0xAB,
+
   RTI             = 0xFD,
   NMIVEC          = 0xFE,
   HLT             = 0xFF

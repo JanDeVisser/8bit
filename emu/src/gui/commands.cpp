@@ -1,9 +1,10 @@
-#include "commands.h"
-
 #include <iostream>
 
 #include <QEventLoop>
 #include "qlogging.h"
+
+#include "blockcursorstyle.h"
+#include "commands.h"
 
 Command::Command(CommandLineEdit &edit) : m_line(edit.text()) {
   m_args = m_line.split(" ", Qt::SkipEmptyParts);

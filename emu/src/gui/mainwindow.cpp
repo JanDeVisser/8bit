@@ -7,16 +7,17 @@
 #include <QPainter>
 #include <QTabWidget>
 
-#include "componentview.h"
-#include "mainwindow.h"
-#include "systembus.h"
-
 #include "addressregister.h"
 #include "controller.h"
 #include "memory.h"
 #include "register.h"
 #include "registers.h"
+#include "systembus.h"
+
+#include "componentview.h"
+#include "mainwindow.h"
 #include "systembusview.h"
+#include "terminal.h"
 
 
 MainWindow::MainWindow(QWidget *parent)
@@ -43,6 +44,9 @@ MainWindow::MainWindow(QWidget *parent)
   m_status -> setFont(QFont("ibm3270", 10));
   m_status -> setStyleSheet("QTextEdit { color: green; background-color: black; }");
   tabs -> addTab(m_status, "Log");
+
+  m_terminal = new Terminal(cpu);
+  tabs -> addTab(m_terminal, "Terminal");
 
   mainLayout->addWidget(tabs);
 

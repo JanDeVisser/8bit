@@ -35,6 +35,7 @@ public:
   Register *     lhs() const { return m_lhs; }
 
   std::ostream & status(std::ostream &) override;
+  SystemError    onRisingClockEdge() override;
   SystemError    onHighClock() override;
 };
 

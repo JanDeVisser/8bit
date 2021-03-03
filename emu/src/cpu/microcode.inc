@@ -70,7 +70,7 @@
 
 #define CMP(op, instr, lhs, rhs) \
   { \
-    .opcode = op, .instruction = instr,  .addressingMode = Immediate, \
+    .opcode = op, .instruction = instr, .addressingMode = Immediate, \
     .steps = { \
       { .action = MicroCode::XDATA, .src = lhs, .target = LHS, .opflags = SystemBus::None }, \
       { .action = MicroCode::XDATA, .src = rhs, .target = RHS, .opflags = ((byte) ALU::SUB) | SystemBus::Done }, \
@@ -79,7 +79,7 @@
 
 #define OUT(op, instr, reg) \
   { \
-    .opcode = op, .instruction = instr,  .addressingMode = DirectByte, .target = CONTROLLER, \
+    .opcode = op, .instruction = instr, .addressingMode = DirectByte, .target = CONTROLLER, \
     .steps = { \
       { .action = MicroCode::IO, .src = reg, .target = DEREFCONTROLLER, .opflags = SystemBus::IOOut | SystemBus::Done }, \
     } \
@@ -87,7 +87,7 @@
 
 #define IN(op, instr, reg) \
   { \
-    .opcode = op, .instruction = instr,  .addressingMode = DirectByte, .target = CONTROLLER, \
+    .opcode = op, .instruction = instr, .addressingMode = DirectByte, .target = CONTROLLER, \
     .steps = { \
       { .action = MicroCode::IO, .src = reg, .target = DEREFCONTROLLER, .opflags = SystemBus::IOIn | SystemBus::Done }, \
     } \
@@ -779,7 +779,39 @@ static MicroCode mc[256] = {
   IN(IN_C, "in c, #%02x", GP_C),
   IN(IN_D, "in d, #%02x", GP_D),
 
-  { /* 169 */ }, { /* 170 */ }, { /* 171 */ }, { /* 172 */ },
+  {
+    .opcode = PUSH_FLAGS, .instruction = "pushfl",  .addressingMode = Immediate,
+    .steps = {
+      { .action = MicroCode::XADDR, .src = SP, .target = MEMADDR, .opflags = SystemBus::Inc },
+      { .action = MicroCode::XADDR, .src = RHS, .target = MEM, .opflags = SystemBus::Done }
+    }
+  },
+
+  {
+    .opcode = POP_FLAGS, .instruction = "popfl",  .addressingMode = Immediate,
+    .steps = {
+      { .action = MicroCode::XADDR, .src = SP, .target = MEMADDR, .opflags = SystemBus::Dec },
+      { .action = MicroCode::XADDR, .src = MEM, .target = RHS, .opflags = SystemBus::Done }
+    }
+  },
+
+  {
+    .opcode = CLR_FLAGS, .instruction = "clrfl",  .addressingMode = Immediate,
+    .steps = {
+
+      // Clear TX LSB by XORing in the ALU:
+      { .action = MicroCode::XDATA, .src = TX, .target = LHS, .opflags = SystemBus::None },
+      { .action = MicroCode::XDATA, .src = TX, .target = RHS, .opflags = ALU::XOR },
+
+      // Move back result (zero) to TX LSB:
+      { .action = MicroCode::XDATA, .src = LHS, .target = TX, .opflags = SystemBus::None },
+
+      // Move TX LSB (which is 0) to flags using xaddr on ALU RHS register:
+      { .action = MicroCode::XADDR, .src = TX, .target = RHS, .opflags = SystemBus::Done }
+    }
+  },
+
+  { /* 172 */ },
   { /* 173 */ }, { /* 174 */ }, { /* 175 */ }, { /* 176 */ }, { /* 177 */ }, { /* 178 */ }, { /* 179 */ }, { /* 180 */ },
   { /* 181 */ }, { /* 182 */ }, { /* 183 */ }, { /* 184 */ }, { /* 185 */ }, { /* 186 */ }, { /* 187 */ }, { /* 188 */ },
   { /* 189 */ }, { /* 190 */ }, { /* 191 */ }, { /* 192 */ }, { /* 193 */ }, { /* 194 */ }, { /* 195 */ }, { /* 196 */ },
@@ -795,6 +827,8 @@ static MicroCode mc[256] = {
     .opcode = RTI, .instruction = "rti", .addressingMode = Immediate,
     .steps = {
       POP_ADDR(PC, SystemBus::None),
+      { .action = MicroCode::XADDR, .src = SP, .target = MEMADDR, .opflags = SystemBus::Dec },
+      { .action = MicroCode::XADDR, .src = MEM, .target = RHS, .opflags = SystemBus::None },
       POP_ADDR(Di, SystemBus::None),
       POP_ADDR(Si, SystemBus::None),
       POP_REG(GP_D, SystemBus::None),

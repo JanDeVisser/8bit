@@ -5,95 +5,83 @@
 #ifndef EMU_MEMORY_H
 #define EMU_MEMORY_H
 
+#include <memory>
 #include <vector>
 #include <cstring>
 
 #include "addressregister.h"
 #include "systembus.h"
 
-struct MemImage {
-  word        address;
-  word        size;
-  const byte *contents;
+class MemoryBank {
+private:
+  word                    m_start;
+  word                    m_size;
+  bool                    m_writable;
+  std::shared_ptr<byte>   m_image;
 
-  MemImage(word addr, word sz, const byte *d)
-      : address(addr), size(sz) {
-    contents = new byte[sz];
-      memcpy((void *) contents, (void *) d, sz);
-  }
+public:
+               MemoryBank() = default;
+               MemoryBank(const MemoryBank &);
+               MemoryBank(MemoryBank &&) noexcept;
+               MemoryBank(word, word, bool = true, const byte * = nullptr) noexcept;
+               ~MemoryBank() = default;
+  MemoryBank & operator=(const MemoryBank &);
+  MemoryBank & operator=(MemoryBank &&) noexcept;
+  byte &       operator[](std::size_t);
+  const byte & operator[](std::size_t) const;
+
+  bool         mapped(size_t) const;
+  bool         fits(size_t, size_t) const;
+  bool         disjointFrom(size_t, size_t) const;
+  void         erase();
+  void         copy(size_t, size_t, const byte *);
+  void         copy(MemoryBank &);
+  void         copy(MemoryBank &&);
+  word         offset(size_t addr) const { return addr - start(); }
+  word         start() const    { return m_start;          }
+  word         size() const     { return m_size;           }
+  word         end() const      { return m_start + m_size; }
+  bool         writable() const { return m_writable;       }
 };
 
 class Memory : public AddressRegister {
 private:
-  word              ram_start;
-  word              ram_size;
-  word              rom_start;
-  word              rom_size;
-  std::vector<byte> ram;
-  std::vector<byte> rom;
+  std::vector<MemoryBank> m_banks;
+
+  const MemoryBank & findBankForAddress(size_t, bool &) const;
+  const MemoryBank & findBankForBlock(size_t, size_t, bool &) const;
+  bool               disjointFromAll(size_t, size_t) const;
 
 public:
-  Memory(word, word, word, word, MemImage * = nullptr);
-  ~Memory() override;
+                     Memory();
+                     Memory(Memory &) = delete;
+                     Memory(Memory &&) = delete;
+                     Memory(word, word, word, word, MemoryBank && = MemoryBank());
+                     Memory(word, word, word, word, MemoryBank &);
+  explicit           Memory(MemoryBank &&);
+  explicit           Memory(MemoryBank &);
+                     ~Memory() override = default;
+  void               erase();
+  void               add(word, word, bool = true, const byte * = nullptr);
+  void               add(MemoryBank &&);
+  void               add(MemoryBank &);
+  void               initialize(word, word, const byte * = nullptr, bool = true);
+  void               initialize();
+  void               initialize(MemoryBank &&);
+  void               initialize(MemoryBank &);
+  bool               inRAM(word) const;
+  bool               inROM(word) const;
+  bool               isMapped(word) const;
+  byte &             operator[](std::size_t);
+  const byte &       operator[](std::size_t) const;
+  std::ostream &     status(std::ostream &) override;
+  SystemError        onRisingClockEdge() override;
+  SystemError        onHighClock() override;
 
-  constexpr static byte MEM_ID = 0x7;
-  constexpr static byte ADDR_ID = 0xF;
-  constexpr static int EV_CONTENTSCHANGED = 0x04;
-  constexpr static int EV_IMAGELOADED = 0x05;
-
-  void erase();
-  void add(word, word, const byte *);
-  void add(MemImage *);
-  void initialize(MemImage *);
-  void initialize(word, word, const byte *);
-
-  bool inRAM(word addr) const {
-    return (addr >= ram_start) && (addr < (ram_start + ram_size));
-  }
-
-  bool inROM(word addr) const {
-    return (addr >= rom_start) && (addr < (rom_start + rom_size));
-  }
-
-  bool isMapped(word addr) const {
-    return inRAM(addr) || inROM(addr);
-  }
-
-  byte & operator[](std::size_t addr) {
-    if (inRAM(addr)) {
-      return ram[addr - ram_start];
-    } else if (inROM(addr)) {
-      return rom[addr - rom_start];
-    } else {
-      throw std::exception(); // FIXME
-    }
-  }
-
-  const byte & operator[](std::size_t addr) const {
-    if (inRAM(addr)) {
-      return ram[addr - ram_start];
-    } else if (inROM(addr)) {
-      return rom[addr - rom_start];
-    } else {
-      throw std::exception(); // FIXME
-    }
-  }
-
-  word ramStart() const {
-    return ram_start;
-  }
-
-  word ramEnd() const {
-    return ram_start + ram_size;
-  }
-
-  word ramSize() const {
-    return ram_size;
-  }
-
-  std::ostream & status(std::ostream &) override;
-  SystemError    onRisingClockEdge() override;
-  SystemError    onHighClock() override;
+  constexpr static byte  MEM_ID = 0x7;
+  constexpr static byte  ADDR_ID = 0xF;
+  constexpr static int   EV_CONTENTSCHANGED = 0x04;
+  constexpr static int   EV_IMAGELOADED = 0x05;
 };
 
 #endif //EMU_MEMORY_H

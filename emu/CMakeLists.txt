@@ -58,9 +58,10 @@ add_executable(emu
         src/gui/componentview.cpp src/gui/componentview.h
         src/gui/systembusview.cpp src/gui/systembusview.h
         src/gui/memdump.cpp src/gui/memdump.h
+        src/gui/terminal.cpp src/gui/terminal.h
 
         src/gui/qled.cpp src/gui/qled.h
-)
+        src/gui/blockcursorstyle.cpp src/gui/blockcursorstyle.h)
 
 target_link_libraries(
         emu
@@ -96,7 +97,7 @@ add_executable(
         src/test/jump.cpp
         src/test/io.cpp
         src/test/inout.cpp
-)
+        src/test/pushfl.cpp)
 
 target_link_libraries(emu_test emucomponents ${GTEST_LDFLAGS})
 target_compile_options(emu_test PUBLIC ${GTEST_CFLAGS})

@@ -16,18 +16,6 @@ class CommandLineEdit;
 typedef std::function<void(Command &)> CommandHandler;
 typedef std::function<QVector<QString>(const QStringList &)> Completer;
 
-class BlockCursorStyle : public QProxyStyle {
-public:
-  explicit BlockCursorStyle(QStyle *style = nullptr) : QProxyStyle(style) {  }
-
-  int pixelMetric(PixelMetric metric, const QStyleOption *option, const QWidget *widget) const override {
-    if (metric == QStyle::PM_TextCursorWidth) {
-      return 10;
-    }
-    return QProxyStyle::pixelMetric(metric, option, widget);
-  }
-};
-
 class CommandDefinition {
 private:
   CommandLineEdit  *m_edit = nullptr;

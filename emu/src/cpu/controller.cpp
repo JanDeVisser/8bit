@@ -32,6 +32,10 @@ static MicroCode mcNMI = {
     { .action = MicroCode::XADDR, .src = SP, .target = MEMADDR, .opflags = SystemBus::Inc },
     { .action = MicroCode::XDATA, .src = Di, .target = MEM, .opflags = SystemBus::MSB },
 
+    // Push the processor flags:
+    { .action = MicroCode::XADDR, .src = SP, .target = MEMADDR, .opflags = SystemBus::Inc },
+    { .action = MicroCode::XADDR, .src = RHS, .target = MEM, .opflags = SystemBus::None },
+
     // Push the return address:
     { .action = MicroCode::XADDR, .src = SP, .target = MEMADDR, .opflags = SystemBus::Inc },
     { .action = MicroCode::XDATA, .src = PC, .target = MEM, .opflags = SystemBus::None },

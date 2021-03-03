@@ -112,6 +112,10 @@ std::ostream & SystemBus::status(std::ostream &os) {
   return os;
 }
 
+void SystemBus::setFlags(byte flags) {
+  m_flags = flags;
+}
+
 void SystemBus::setFlag(ProcessorFlags flag, bool flagValue) {
   if (flagValue) {
     m_flags |= flag;

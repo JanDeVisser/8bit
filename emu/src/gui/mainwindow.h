@@ -18,6 +18,7 @@
 #include "cputhread.h"
 #include "backplane.h"
 #include "memdump.h"
+#include "terminal.h"
 
 
 class MainWindow : public QMainWindow
@@ -41,6 +42,7 @@ private:
 
   MemDump         *m_memdump = nullptr;
   QTextEdit       *m_status = nullptr;
+  Terminal        *m_terminal = nullptr;
 
   CommandLineEdit * makeCommandLine();
 

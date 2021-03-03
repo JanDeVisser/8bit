@@ -81,6 +81,7 @@ public:
   void             setFlag(ProcessorFlags, bool = true);
   void             clearFlag(ProcessorFlags);
   void             clearFlags();
+  void             setFlags(byte);
   byte             flags() const { return m_flags; }
   bool             isSet(ProcessorFlags) const;
   std::string      flagsString() const;
@@ -141,7 +142,10 @@ public:
   void insert(ConnectedComponent *component) {
     component->bus(&m_bus);
     m_components[component->id()] = component;
-    m_aliases[component->alias()] = component->id();
+    m_aliases[component->id()] = component->id();
+    if (component->id() != component->alias()) {
+      m_aliases[component->alias()] = component->id();
+    }
   }
 
   ConnectedComponent * component(int ix) const {

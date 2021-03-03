@@ -132,7 +132,7 @@ const byte asm_nmi[] = {
   /* 800B */ MOV_SI_CONST, 0x34, 0x35, //  6 cycles
   /* 800E */ MOV_DI_CONST, 0x36, 0x37, //  6 cycles
   /* 8011 */ NOP,                      //  3
-             // CALL NMI               // 21
+             // CALL NMI               // 23
   /* 8012 */ MOV_A_CONST, 0x38,        //  4 cycles
   /* 8014 */ HLT,                      //  6
   /* 8015 */ MOV_A_CONST, 0x40,        //  4 cycles
@@ -141,8 +141,8 @@ const byte asm_nmi[] = {
   /* 801B */ MOV_D_CONST, 0x43,        //  4 cycles
   /* 801D */ MOV_SI_CONST, 0x44, 0x45, //  6 cycles
   /* 8020 */ MOV_DI_CONST, 0x46, 0x47, //  6 cycles
-  /* 8023 */ RTI                       // 22
-};                                     // Total: 116
+  /* 8023 */ RTI                       // 24
+};                                     // Total: 120
 
 TEST_F(TESTNAME, nmi) {
   mem -> initialize(ROM_START, 36, asm_nmi);
@@ -157,7 +157,7 @@ TEST_F(TESTNAME, nmi) {
   nmiAt = 0x8011;
   auto cycles = system -> run();
   ASSERT_EQ(system -> error(), NoError);
-  ASSERT_EQ(cycles, 116);
+  ASSERT_EQ(cycles, 120);
   ASSERT_EQ(system -> bus().halt(), false);
   ASSERT_EQ(gp_a -> getValue(), 0x38);
   ASSERT_EQ(gp_b -> getValue(), 0x31);

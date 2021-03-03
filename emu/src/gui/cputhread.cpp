@@ -18,12 +18,35 @@ protected:
   }
 };
 
-CPU::CPU(QObject *parent) : QObject(parent), m_running(false), m_status() {
+CPU::CPU(QObject *parent) : QObject(parent), m_running(false), m_status(), m_keys(), m_kbdMutex() {
   m_system = new BackPlane();
   m_system -> defaultSetup();
   m_system -> setOutputStream(m_status);
+  m_keyboard = new IOChannel(0x00, "KEY", [this]() {
+    byte ret = 0x00;
+    m_kbdMutex.lock();
+    if (!m_keys.empty()) {
+      ret = m_keys[0];
+      m_keys.pop_front();
+    }
+    m_kbdMutex.unlock();
+    return ret;
+  });
+
+  m_terminal = new IOChannel(0x01, "OUT", [this](byte out) {
+    emit terminalWrite(QString((char) out));
+  });
+
+  m_system -> insertIO(m_keyboard);
+  m_system -> insertIO(m_terminal);
+
   m_thread = new Executor(m_system, this);
   connect(m_thread, &QThread::finished, this, &CPU::finished);
+
+  QFile initial("./emu.bin");
+  if (initial.exists()) {
+    openImage(initial.fileName());
+  }
 }
 
 void CPU::run() {
@@ -84,15 +107,29 @@ void CPU::setRunMode(Controller::RunMode runMode) const {
   m_system -> setRunMode(runMode);
 }
 
-void CPU::openImage(QString &img) {
-  QFile f(img, this);
-  f.open(QIODevice::ReadOnly);
-  auto bytearr = f.readAll();
+void CPU::openImage(QFile &img) {
+  img.open(QIODevice::ReadOnly);
+  auto bytearr = img.readAll();
   m_system -> loadImage(bytearr.size(), (const byte *) bytearr.data());
 }
 
-void CPU::openImage(QString &&img) {
+void CPU::openImage(QFile &&img) {
   openImage(img);
+}
+
+void CPU::openImage(const QString &img) {
+  openImage(QFile(img));
+}
+
+void CPU::keyPressed(QKeyEvent *key) {
+  m_kbdMutex.lock();
+  emit terminalWrite(key->text());
+
+//  m_keys.emplace_back(key);
+//  if (m_keys.size() == 1) {
+//    m_system->bus().setNmi();
+//  }
+  m_kbdMutex.unlock();
 }
 
 #include "cputhread.moc"

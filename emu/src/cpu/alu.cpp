@@ -26,6 +26,18 @@ std::ostream & ALU::status(std::ostream &os) {
   return os;
 }
 
+SystemError ALU::onRisingClockEdge() {
+  auto err = Register::onHighClock();
+  if (err != NoError) {
+    return err;
+  }
+  if (!bus()->xaddr() && (bus()->getID() == id())) {
+    bus()->putOnAddrBus(0x0);
+    bus()->putOnDataBus(bus()->flags());
+  }
+  return NoError;
+}
+
 SystemError ALU::onHighClock() {
   static Operator operators[16] = {
     /* 0x0 ADD */ [](ALU *alu) {
@@ -96,20 +108,24 @@ SystemError ALU::onHighClock() {
     return err;
   }
   if (bus()->putID() == id()) {
-    m_operator = operators[bus()->opflags()];
-    if (m_operator) {
-      auto result = m_operator(this);
-      byte val = (byte) (result & 0xFF);
-      bus() -> clearFlags();
-      if ((val & 0x00FF) == 0) {
-        bus() -> setFlag(SystemBus::Z);
+    if (!bus()->xdata()) {
+      m_operator = operators[bus()->opflags()];
+      if (m_operator) {
+        auto result = m_operator(this);
+        byte val = (byte) (result & 0xFF);
+        bus()->clearFlags();
+        if ((val & 0x00FF) == 0) {
+          bus()->setFlag(SystemBus::Z);
+        }
+        if (result & 0x0100) {
+          bus()->setFlag(SystemBus::C);
+        }
+        this->setOverflow(val);
+        m_lhs->setValue(val);
+        m_operator = nullptr;
       }
-      if (result & 0x0100) {
-        bus() -> setFlag(SystemBus::C);
-      }
-      this -> setOverflow(val);
-      m_lhs->setValue(val);
-      m_operator = nullptr;
+    } else if (!bus()->xaddr()) {
+      bus()->setFlags(bus()->readDataBus());
     }
   }
   return NoError;

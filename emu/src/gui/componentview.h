@@ -214,6 +214,7 @@ class MemoryView : public ComponentView {
   Q_OBJECT
 
 signals:
+  void configurationChanged();
   void contentsChanged();
   void imageLoaded();
 

@@ -62,15 +62,22 @@ Memory * BackPlane::memory() const {
   return dynamic_cast<Memory *>(component(MEMADDR));
 }
 
-void BackPlane::loadImage(word sz, const byte *data) {
-  image = MemoryBank(0x0000, sz, true, data);
-  memory() -> initialize(image);
+void BackPlane::loadImage(word sz, const byte *data, word addr, bool writable) {
+  image = MemoryBank(addr, sz, writable, data);
+  memory() -> add(image);
   reset();
 }
 
-void BackPlane::run() {
+void BackPlane::run(word fromAddress) {
   if (!bus().sus()) {
     bus().clearSus();
+  }
+
+  // TODO: Better: build a prolog microcode script, or maybe
+  // assembly, to setup SP, NMI, and PC.
+  auto *pc = dynamic_cast<AddressRegister *>(component(PC));
+  if ((fromAddress != 0xFFFF) && (fromAddress != pc->getValue())) {
+    pc->setValue(fromAddress);
   }
   clock.start();
 }

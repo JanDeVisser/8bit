@@ -31,9 +31,11 @@ private slots:
 
 public:
   explicit MainWindow(QWidget *parent = nullptr);
+  CPU *    cpu() { return m_cpu; }
+  QString  query(const QString &, const QString &);
 
 private:
-  CPU             *cpu = nullptr;
+  CPU             *m_cpu = nullptr;
   QAction         *m_exit = nullptr;
   QAction         *m_open = nullptr;
   QLabel          *m_history;
@@ -54,4 +56,17 @@ protected:
   void          addHistory(const QString &);
   static QVector<QString> fileCompletions(const QStringList &);
 };
+
+struct BankCommand {
+  Command    &cmd;
+  MainWindow *window;
+
+  BankCommand(MainWindow *, Command &);
+  void execute();
+  void add();
+  void del();
+
+  word parseWord(int, QString &&);
+};
+
 #endif // MAINWINDOW_H

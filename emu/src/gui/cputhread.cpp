@@ -4,20 +4,6 @@
 
 #include <QFile>
 
-class Executor : public QThread {
-  Q_OBJECT
-  BackPlane *m_system;
-
-public:
-  explicit Executor(BackPlane *system, QObject *parent = nullptr)
-      : QThread(parent), m_system(system) { }
-
-protected:
-  void run() override {
-    m_system -> run();
-  }
-};
-
 CPU::CPU(QObject *parent) : QObject(parent), m_running(false), m_status(), m_keys(), m_kbdMutex() {
   m_system = new BackPlane();
   m_system -> defaultSetup();
@@ -49,8 +35,9 @@ CPU::CPU(QObject *parent) : QObject(parent), m_running(false), m_status(), m_key
   }
 }
 
-void CPU::run() {
+void CPU::run(word addr) {
   reset();
+  m_thread->startAddress(addr);
   continueExecution();
 }
 
@@ -58,11 +45,11 @@ void CPU::continueExecution() {
   start(Controller::Continuous);
 }
 
-void CPU::step() {
+void CPU::step(word addr) {
   start(Controller::BreakAtInstruction);
 }
 
-void CPU::tick() {
+void CPU::tick(word addr) {
   start(Controller::BreakAtClock);
 }
 
@@ -83,7 +70,7 @@ void CPU::start(Controller::RunMode runMode) {
 
 void CPU::finished() {
   m_running = false;
-  std::cout << m_status.str();
+//  std::cout << m_status.str();
   if (!m_system->bus().halt()) {
     emit executionEnded(QString::fromStdString(m_status.str()));
   } else {
@@ -107,18 +94,18 @@ void CPU::setRunMode(Controller::RunMode runMode) const {
   m_system -> setRunMode(runMode);
 }
 
-void CPU::openImage(QFile &img) {
+void CPU::openImage(QFile &img, word addr, bool writable) {
   img.open(QIODevice::ReadOnly);
   auto bytearr = img.readAll();
-  m_system -> loadImage(bytearr.size(), (const byte *) bytearr.data());
+  m_system -> loadImage(bytearr.size(), (const byte *) bytearr.data(), addr, writable);
 }
 
-void CPU::openImage(QFile &&img) {
-  openImage(img);
+void CPU::openImage(QFile &&img, word addr, bool writable) {
+  openImage(img, addr, writable);
 }
 
-void CPU::openImage(const QString &img) {
-  openImage(QFile(img));
+void CPU::openImage(const QString &img, word addr, bool writable) {
+  openImage(QFile(img), addr, writable);
 }
 
 void CPU::keyPressed(QKeyEvent *key) {
@@ -132,4 +119,4 @@ void CPU::keyPressed(QKeyEvent *key) {
   m_kbdMutex.unlock();
 }
 
-#include "cputhread.moc"
+//#include "cputhread.moc"

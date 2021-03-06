@@ -27,13 +27,13 @@ protected:
 public:
                       BackPlane();
                       ~BackPlane() override = default;
-  void                run();
+  void                run(word = 0x0000);
   void                stop() { clock.stop(); }
   Controller::RunMode runMode() const;
   void                setRunMode(Controller::RunMode runMode) const;
   Controller *        controller() const;
   Memory *            memory() const;
-  void                loadImage(word, const byte *);
+  void                loadImage(word, const byte *, word addr = 0, bool writable = true);
   void                setOutputStream(std::ostream &os) { m_output = &os; }
 
   std::ostream &      status(std::ostream &) override;

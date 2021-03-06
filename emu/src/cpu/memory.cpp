@@ -73,6 +73,32 @@ const byte & MemoryBank::operator[](std::size_t addr) const {
   }
 }
 
+bool MemoryBank::operator<(const MemoryBank &other) const {
+  return start() < other.start();
+}
+
+bool MemoryBank::operator<=(const MemoryBank &other) const {
+  return start() < other.start();
+}
+
+bool MemoryBank::operator>(const MemoryBank &other) const {
+  return start() > other.start();
+}
+
+bool MemoryBank::operator>=(const MemoryBank &other) const {
+  return start() > other.start();
+}
+
+bool MemoryBank::operator==(const MemoryBank &other) const {
+  return start() == other.start();
+}
+
+std::string MemoryBank::name() const {
+  char buf[80];
+  snprintf(buf, 80, "%s %04x-%04x", ((writable()) ? "RAM" : "ROM"), start(), end());
+  return buf;
+}
+
 void MemoryBank::erase() {
   memset(m_image.get(), 0, m_size);
 }
@@ -135,28 +161,37 @@ Memory::Memory(word ramStart, word ramSize, word romStart, word romSize, MemoryB
     : Memory(ramStart, ramSize, romStart, romSize, bank) {
 }
 
-const MemoryBank & Memory::findBankForAddress(size_t addr, bool &found) const {
+MemoryBank Memory::findBankForAddress(size_t addr) const {
   static MemoryBank dummy;
-  found = false;
-  for (auto const &bank : m_banks) {
+  MemoryBank ret;
+  for (auto &bank : m_banks) {
     if (bank.mapped(addr)) {
-      found = true;
-      return bank;
+      ret = bank;
+      return ret;
     }
   }
   return dummy;
 }
 
-const MemoryBank & Memory::findBankForBlock(size_t addr, size_t size, bool &found) const {
+MemoryBank Memory::findBankForBlock(size_t addr, size_t size) const {
   static MemoryBank dummy;
-  found = false;
-  for (auto const &bank : m_banks) {
-    if (bank.fits(addr, size)) {
-      found = true;
-      return bank;
-    }
+  MemoryBank ret = findBankForAddress(addr);
+  if (ret.valid() && !ret.fits(addr, size)) {
+    ret = dummy;
   }
-  return dummy;
+  return ret;
+}
+
+MemoryBank Memory::bank(word addr) const {
+  return findBankForBlock(addr, 0);
+}
+
+MemoryBanks Memory::banks() const {
+  return MemoryBanks(m_banks);
+}
+
+word Memory::start() const {
+  return (m_banks.begin() != m_banks.end()) ? m_banks.begin()->start() : 0xFFFF;
 }
 
 bool Memory::disjointFromAll(size_t addr, size_t size) const {
@@ -170,92 +205,107 @@ bool Memory::disjointFromAll(size_t addr, size_t size) const {
 
 void Memory::erase() {
   for (auto &bank : m_banks) {
-    bank.erase();
+    MemoryBank b(bank);
+    b.erase();
   }
 }
 
-void Memory::add(word address, word size, bool writable, const byte *contents) {
-  bool found;
-  MemoryBank b = findBankForBlock(address, size, found);
-  if (found) {
+bool Memory::add(word address, word size, bool writable, const byte *contents) {
+  MemoryBank b = findBankForBlock(address, size);
+  if (b.valid()) {
     b.copy(address, size, contents);
   } else if (disjointFromAll(address, size)) {
-    m_banks.emplace_back(address, size, writable, contents);
+    m_banks.emplace(address, size, writable, contents);
+    sendEvent(EV_CONFIGCHANGED);
   } else {
-    throw std::exception(); // FIXME
+    return false;
   }
   if (contents) {
     sendEvent(EV_IMAGELOADED);
   }
+  return true;
 }
 
-void Memory::add(MemoryBank &&bank) {
-  bool found;
-  MemoryBank b = findBankForBlock(bank.start(), bank.size(), found);
-  if (found) {
-    b.copy(bank);
-  } else if (disjointFromAll(bank.start(), bank.size())) {
-    m_banks.emplace_back(bank);
-  } else {
-    throw std::exception(); // FIXME
-  }
-}
-
-void Memory::add(MemoryBank &bank) {
+bool Memory::add(MemoryBank &&bank) {
   if (!bank.size()) {
-    return;
+    return true;
   }
-  bool found;
-  MemoryBank b = findBankForBlock(bank.start(), bank.size(), found);
-  if (found) {
+  MemoryBank b = findBankForBlock(bank.start(), bank.size());
+  if (b.valid()) {
     b.copy(bank);
   } else if (disjointFromAll(bank.start(), bank.size())) {
-    m_banks.push_back(std::move(bank));
+    m_banks.emplace(bank);
+    sendEvent(EV_CONFIGCHANGED);
   } else {
-    throw std::exception(); // FIXME
+    return false;
   }
+  sendEvent(EV_IMAGELOADED);
+  return true;
 }
 
-void Memory::initialize() {
+bool Memory::add(MemoryBank &bank) {
+  if (!bank.size()) {
+    return true;
+  }
+  MemoryBank b = findBankForBlock(bank.start(), bank.size());
+  if (b.valid()) {
+    b.copy(bank);
+  } else if (disjointFromAll(bank.start(), bank.size())) {
+    m_banks.insert(std::move(bank));
+    sendEvent(EV_CONFIGCHANGED);
+  } else {
+    return false;
+  }
+  sendEvent(EV_IMAGELOADED);
+  return true;
+}
+
+bool Memory::remove(MemoryBank &bank) {
+  if (!bank.valid()) {
+    return false;
+  }
+  m_banks.erase(bank);
+  sendEvent(EV_CONFIGCHANGED);
+  return true;
+}
+
+bool Memory::initialize() {
   m_banks.clear();
+  return true;
 }
 
-void Memory::initialize(word address, word size, const byte *contents, bool writable) {
-  initialize(MemoryBank(address, size, writable, contents));
+bool Memory::initialize(word address, word size, const byte *contents, bool writable) {
+  return initialize(MemoryBank(address, size, writable, contents));
 }
 
-void Memory::initialize(MemoryBank &bank) {
+bool Memory::initialize(MemoryBank &bank) {
   erase();
-  add(bank);
+  return add(bank);
 }
 
-void Memory::initialize(MemoryBank &&bank) {
-  initialize(bank);
+bool Memory::initialize(MemoryBank &&bank) {
+  return initialize(bank);
 }
 
 bool Memory::inRAM(word addr) const {
-  bool found;
-  MemoryBank bank = findBankForAddress(addr, found);
-  return found && bank.writable();
+  MemoryBank bank = findBankForAddress(addr);
+  return bank.valid() && bank.writable();
 }
 
 bool Memory::inROM(word addr) const {
-  bool found;
-  MemoryBank bank = findBankForAddress(addr, found);
-  return found && !bank.writable();
+  MemoryBank bank = findBankForAddress(addr);
+  return bank.valid() && !bank.writable();
 }
 
 bool Memory::isMapped(word addr) const {
-  bool found;
-  findBankForAddress(addr, found);
-  return found;
+  MemoryBank b(findBankForAddress(addr));
+  return b.valid();
 }
 
 byte & Memory::operator[](std::size_t addr) {
   static byte dummy = 0xFF;
-  bool found;
-  MemoryBank bank = findBankForAddress(addr, found);
-  if (found) {
+  MemoryBank bank(findBankForAddress(addr));
+  if (bank.valid()) {
     return bank[addr];
   } else {
     return dummy;
@@ -264,9 +314,8 @@ byte & Memory::operator[](std::size_t addr) {
 
 const byte & Memory::operator[](std::size_t addr) const {
   static byte dummy = 0xFF;
-  bool found;
-  MemoryBank bank = findBankForAddress(addr, found);
-  if (found) {
+  MemoryBank bank(findBankForAddress(addr));
+  if (bank.valid()) {
     return bank[addr];
   } else {
     return dummy;

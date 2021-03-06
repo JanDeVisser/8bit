@@ -88,7 +88,6 @@ public:
   QVector<QString>         findCommands(QString &&cmd) const { return findCommands(cmd); }
   QVector<QString>         findCompletions(QString &) const;
   QVector<QString>         findCompletions(QString &&cmd) const { return findCompletions(cmd); }
-  QString                  query(QString &&prompt, QString &&options) { return query(prompt, options); }
   QString                  query(const QString &, const QString &);
 
 protected:

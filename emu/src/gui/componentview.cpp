@@ -77,6 +77,9 @@ void MemoryView::componentEvent(Component *sender, int ev) {
     case Memory::EV_CONTENTSCHANGED:
       emit contentsChanged();
       break;
+    case Memory::EV_CONFIGCHANGED:
+      emit configurationChanged();
+      break;
     default:
       ComponentView::componentEvent(sender, ev);
       break;

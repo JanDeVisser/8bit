@@ -3,6 +3,7 @@
 
 #include <QAbstractListModel>
 #include <QListView>
+#include <QComboBox>
 #include <QWindow>
 
 #include "backplane.h"
@@ -17,11 +18,15 @@ public:
   int          rowCount(const QModelIndex &parent) const override;
   QVariant     data(const QModelIndex &index, int role) const override;
   QModelIndex  indexOf(word addr=0xFFFF) const;
+  word         currentAddress() const { return m_address; }
+  int          currentBankIndex() const { return m_bankIx; }
 
 signals:
-    void numberPopulated(int number);
+  void         numberPopulated(int number);
 
 public slots:
+  void         reset(word addr);
+  void         reset(int, word);
   void         reload();
 
 protected:
@@ -29,10 +34,12 @@ protected:
     void fetchMore(const QModelIndex &parent) override;
 
 private:
-  word          m_address;
-  const Memory &m_memory;
+  word           m_address;
+  int            m_bankIx;
+  MemoryBank     m_bank;
+  const Memory & m_memory;
 
-  QVariant      getRow(int) const;
+  QVariant       getRow(int) const;
 };
 
 
@@ -40,14 +47,15 @@ class MemDump : public QWidget {
   Q_OBJECT
 
 public:
-  explicit MemDump(BackPlane *, QWidget * = nullptr);
-  ~MemDump()     override = default;
+  explicit       MemDump(BackPlane *, QWidget * = nullptr);
+                 ~MemDump() override = default;
   BackPlane *    getSystem() const  { return m_system; }
   void           reload();
   void           focusOnAddress(word addr=0xFFFF);
 
 public slots:
-  void focus();
+  void           focus();
+  void           selectBank(int ix);
 
 signals:
 
@@ -57,6 +65,7 @@ private:
   BackPlane *m_system;
   MemModel   m_model;
   QListView *m_view;
+  QComboBox *m_banks;
 };
 
 

@@ -10,6 +10,22 @@
 #include "backplane.h"
 #include "iochannel.h"
 
+class Executor : public QThread {
+Q_OBJECT
+  BackPlane *m_system;
+  word       m_address;
+
+public:
+  explicit Executor(BackPlane *system, QObject *parent = nullptr)
+    : QThread(parent), m_system(system), m_address(0xFFFF) { }
+  void startAddress(word address) { m_address = address; }
+
+protected:
+  void run() override {
+    m_system -> run(m_address);
+  }
+};
+
 class CPU : public QObject {
   Q_OBJECT
 
@@ -18,14 +34,14 @@ public:
   ~CPU() override = default;
   BackPlane *    getSystem() { return m_system; }
   void           setRunMode(Controller::RunMode) const;
-  void           openImage(const QString &);
-  void           openImage(QFile &);
-  void           openImage(QFile &&);
+  void           openImage(const QString &, word addr = 0, bool writable = true);
+  void           openImage(QFile &, word addr = 0, bool writable = true);
+  void           openImage(QFile &&, word addr = 0, bool writable = true);
 
-  void           run();
+  void           run(word = 0xFFFF);
   void           continueExecution();
-  void           step();
-  void           tick();
+  void           step(word = 0xFFFF);
+  void           tick(word = 0xFFFF);
   void           reset();
   bool           isRunning() const;
   bool           isHalted() const;
@@ -40,7 +56,7 @@ signals:
 
 
 private:
-  QThread           *m_thread;
+  Executor          *m_thread;
   BackPlane         *m_system;
   IOChannel         *m_keyboard;
   IOChannel         *m_terminal;

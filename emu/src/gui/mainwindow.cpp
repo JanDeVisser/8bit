@@ -23,9 +23,9 @@
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent) {
   createMenu();
-  cpu = new CPU(this);
-  connect(cpu, &CPU::executionEnded, this, &MainWindow::cpuStopped);
-  connect(cpu, &CPU::executionInterrupted, this, &MainWindow::cpuStopped);
+  m_cpu = new CPU(this);
+  connect(m_cpu, &CPU::executionEnded, this, &MainWindow::cpuStopped);
+  connect(m_cpu, &CPU::executionInterrupted, this, &MainWindow::cpuStopped);
   setStyleSheet("MainWindow { background-color: black; }");
 
   auto widget = new QWidget;
@@ -34,7 +34,7 @@ MainWindow::MainWindow(QWidget *parent)
   mainLayout -> addLayout(layout);
   widget -> setLayout(mainLayout);
 
-  auto system = cpu -> getSystem();
+  auto system = m_cpu -> getSystem();
 
   auto tabs = new QTabWidget();
   m_memdump = new MemDump(system);
@@ -45,7 +45,7 @@ MainWindow::MainWindow(QWidget *parent)
   m_status -> setStyleSheet("QTextEdit { color: green; background-color: black; }");
   tabs -> addTab(m_status, "Log");
 
-  m_terminal = new Terminal(cpu);
+  m_terminal = new Terminal(m_cpu);
   tabs -> addTab(m_terminal, "Terminal");
 
   mainLayout->addWidget(tabs);
@@ -75,6 +75,7 @@ MainWindow::MainWindow(QWidget *parent)
   connect(memView, &ComponentView::valueChanged, m_memdump, &MemDump::focus);
   connect(memView, &MemoryView::imageLoaded, m_memdump, &MemDump::reload);
   connect(memView, &MemoryView::contentsChanged, m_memdump, &MemDump::reload);
+  connect(memView, &MemoryView::configurationChanged, m_memdump, &MemDump::reload);
 
   m_history = new QLabel;
   m_history ->setFont(QFont("ibm3270", 15));
@@ -133,7 +134,7 @@ void MainWindow::openFile() {
                                                   tr("Binary Files (*.bin);;All Files (*)"),
                                                   &selectedFilter);
   if (!fileName.isEmpty()) {
-    cpu -> openImage(fileName);
+    m_cpu -> openImage(fileName);
   }
 
 }
@@ -168,10 +169,19 @@ CommandLineEdit * MainWindow::makeCommandLine() {
 #endif
     });
 
-  ret->addCommandDefinition(ret, "run", 0, 0,
+  ret->addCommandDefinition(ret, "run", 0, 1,
     [this](Command &cmd) {
-      if (!cpu->isRunning()) {
-        cpu->run();
+      if (!m_cpu->isRunning()) {
+        word addr = 0xFFFF;
+        if (cmd.numArgs() == 1) {
+          bool ok;
+          addr = cmd.arg(0).toUShort(&ok, 0);
+          if (!ok) {
+            cmd.setError(QString("Syntax error: unparsable address '%1").arg(cmd.arg(0)));
+            return;
+          }
+        }
+        m_cpu->run(addr);
         cmd.setSuccess();
       } else {
         cmd.setError("CPU running");
@@ -180,43 +190,61 @@ CommandLineEdit * MainWindow::makeCommandLine() {
 
   ret->addCommandDefinition(ret, "reset", 0, 0,
     [this](Command &cmd) {
-      if (!cpu->isRunning()) {
-        cpu->reset();
+      if (!m_cpu->isRunning()) {
+        m_cpu->reset();
       } else {
         cmd.setError("CPU running");
       }
     });
 
-  ret->addCommandDefinition(ret, "step", 0, 0,
+  ret->addCommandDefinition(ret, "step", 0, 1,
     [this](Command &cmd) {
-      if (cpu->isRunning()) {
+      if (m_cpu->isRunning()) {
         cmd.setError("CPU running");
-      } else if (cpu->isHalted()) {
+      } else if (m_cpu->isHalted()) {
         cmd.setError("CPU halted");
       } else {
-        cpu->step();
+        word addr = 0xFFFF;
+        if (cmd.numArgs() == 1) {
+          bool ok;
+          addr = cmd.arg(0).toUShort(&ok, 0);
+          if (!ok) {
+            cmd.setError(QString("Syntax error: unparsable address '%1").arg(cmd.arg(0)));
+            return;
+          }
+        }
+        m_cpu->step(addr);
       }
     });
 
-  ret->addCommandDefinition(ret, "tick", 0, 0,
+  ret->addCommandDefinition(ret, "tick", 0, 1,
     [this](Command &cmd) {
-      if (cpu->isRunning()) {
+      if (m_cpu->isRunning()) {
         cmd.setError("CPU running");
-      } else if (cpu->isHalted()) {
+      } else if (m_cpu->isHalted()) {
         cmd.setError("CPU halted");
       } else {
-        cpu->tick();
+        word addr = 0xFFFF;
+        if (cmd.numArgs() == 1) {
+          bool ok;
+          addr = cmd.arg(0).toUShort(&ok, 0);
+          if (!ok) {
+            cmd.setError(QString("Syntax error: unparsable address '%1").arg(cmd.arg(0)));
+            return;
+          }
+        }
+        m_cpu->tick(addr);
       }
     });
 
   ret->addCommandDefinition(ret, "continue", 0, 0,
     [this](Command &cmd) {
-      if (cpu->isRunning()) {
+      if (m_cpu->isRunning()) {
         cmd.setError("CPU running");
-      } else if (cpu->isHalted()) {
+      } else if (m_cpu->isHalted()) {
         cmd.setError("CPU halted");
       } else {
-        cpu->continueExecution();
+        m_cpu->continueExecution();
       }
     });
 
@@ -226,12 +254,12 @@ CommandLineEdit * MainWindow::makeCommandLine() {
       double speed;
       switch (cmd.numArgs()) {
         case 0:
-          cmd.setResult(QString("%1 kHz").arg(cpu->getSystem()->clockSpeed()));
+          cmd.setResult(QString("%1 kHz").arg(m_cpu->getSystem()->clockSpeed()));
           break;
         case 1:
           speed = cmd.arg(0).toDouble(&ok);
           if (ok) {
-            if (!cpu->getSystem()->setClockSpeed(speed)) {
+            if (!m_cpu->getSystem()->setClockSpeed(speed)) {
               cmd.setError(QString("Frequency %1 kHz out of bounds").arg(speed));
             }
           } else {
@@ -241,14 +269,33 @@ CommandLineEdit * MainWindow::makeCommandLine() {
       }
     });
 
-  ret->addCommandDefinition(ret, "load", 1, 1,
+  ret->addCommandDefinition(ret, "load", 1, 3,
     [this](Command &cmd) {
       if (!QFile::exists(cmd.arg(0))) {
         cmd.setError(QString("File %1/%2 does not exist").arg(QDir::currentPath()).arg(cmd.arg(0)));
       } else if (!(QFile::permissions(cmd.arg(0)) | QFileDevice::ReadUser)) {
         cmd.setError(QString("File %1/%2 is not readable").arg(QDir::currentPath()).arg(cmd.arg(0)));
       } else {
-        cpu->openImage(cmd.arg(0));
+        word addr = 0x0000;
+        bool writable = true;
+        bool ok;
+        if (cmd.numArgs() == 3) {
+          auto lwr = cmd.arg(2).toLower();
+          if ((lwr == "rom") || (lwr == "false")) {
+            writable = false;
+          } else if ((lwr != "ram") && (lwr != "true")) {
+            cmd.setError(QString("Syntax error: unparsable writable flag '%1").arg(cmd.arg(2)));
+            return;
+          }
+        }
+        if (cmd.numArgs() >= 2) {
+          addr = (word) cmd.arg(1).toUShort(&ok, 0);
+          if (!ok) {
+            cmd.setError(QString("Syntax error: unparsable address '%1").arg(cmd.arg(1)));
+            return;
+          }
+        }
+        m_cpu->openImage(cmd.arg(0), addr, writable);
       }
     },
     [this](const QStringList &args) {
@@ -268,7 +315,7 @@ CommandLineEdit * MainWindow::makeCommandLine() {
         case 2:
           value = (byte) cmd.arg(1).toInt(&ok, 0);
           if (!ok) {
-            opcode = cpu->getSystem()->controller()->opcodeForInstruction(
+            opcode = m_cpu->getSystem()->controller()->opcodeForInstruction(
               cmd.arg(1).replace(QChar('_'), QChar(' ')).toStdString());
             if (opcode == -1) {
               cmd.setError(QString("Syntax error: unparsable value '%1").arg(cmd.arg(1)));
@@ -279,31 +326,36 @@ CommandLineEdit * MainWindow::makeCommandLine() {
           poke = true;
           // Fall through
         case 1:
-          addr = (word) cmd.arg(0).toInt(&ok, 0);
+          addr = (word) cmd.arg(0).toUShort(&ok, 0);
           if (!ok) {
             cmd.setError(QString("Syntax error: unparsable address '%1").arg(cmd.arg(0)));
             return;
           }
           if (poke) {
-            (*cpu->getSystem()->memory())[addr] = value;
+            (*m_cpu->getSystem()->memory())[addr] = value;
           }
           m_memdump->focusOnAddress(addr);
-          v = (*cpu->getSystem()->memory())[addr];
+          v = (*m_cpu->getSystem()->memory())[addr];
           if ((v >= 32) && (v <= 126)) {
             cmd.setResult(QString::asprintf("*0x%04x = 0x%02x '%c' %s",
                                             addr, v,
                                             ((v >= 32) && (v <= 126)) ? (char) v : '.',
-                                            cpu->getSystem()->controller()->instructionWithOpcode(v).c_str()));
+                                            m_cpu->getSystem()->controller()->instructionWithOpcode(v).c_str()));
           } else {
             cmd.setResult(QString::asprintf("*0x%04x = 0x%02x %s",
                                             addr, v,
-                                            cpu->getSystem()->controller()->instructionWithOpcode(v).c_str()));
+                                            m_cpu->getSystem()->controller()->instructionWithOpcode(v).c_str()));
           }
           break;
         default:
           cmd.setError("Syntax error: too many arguments");
           break;
       }
+    });
+
+  ret->addCommandDefinition(ret, "bank", 2, 4,
+    [this](Command &cmd) {
+      BankCommand(this, cmd).execute();
     });
 
   return ret;
@@ -334,6 +386,108 @@ QVector<QString> MainWindow::fileCompletions(const QStringList &args) {
     }
   }
   return ret;
+}
+
+QString MainWindow::query(const QString &prompt, const QString &options) {
+  return m_command -> query(prompt, options);
+}
+
+
+BankCommand::BankCommand(MainWindow *win, Command &command) : cmd(command), window(win) {}
+
+void BankCommand::execute() {
+  bool writable = true;
+  word addr = 0x0000;
+  word size = 0x4000;
+  bool ok = true;
+  QString lwr;
+
+  if (window->cpu()->isRunning()) {
+    cmd.setError("Error: Memory configuration cannot be changed when CPU is running");
+    return;
+  }
+
+  lwr = cmd.arg(0).toLower();
+  if (lwr == "add") {
+    add();
+  } else if (lwr == "del") {
+    del();
+  } else {
+    cmd.setError(QString("Syntax error: invalid subcommand '%1").arg(cmd.arg(0)));
+  }
+}
+
+word BankCommand::parseWord(int ix, QString &&err) {
+  bool ok;
+
+  word ret = cmd.arg(ix).toUShort(&ok, 0);
+  if (!ok) {
+    cmd.setError(err.arg(cmd.arg(ix)));
+  }
+  return ret;
+}
+
+void BankCommand::add() {
+  word    addr;
+  word    size;
+  bool    writable = true;
+  QString lwr;
+
+  if (cmd.numArgs() < 3) {
+    cmd.setError("Syntax error: 'add' subcommand requires at least 2 parameters");
+    return;
+  }
+  addr = parseWord(1, "Syntax error: unparsable address '%1'");
+  if (!cmd.success()) {
+    return;
+  }
+  size = parseWord(2, "Syntax error: unparsable size '%1'");
+  if (!cmd.success()) {
+    return;
+  }
+  if (cmd.numArgs() == 4) {
+    lwr = cmd.arg(3).toLower();
+    if ((lwr == "rom") || (lwr == "false")) {
+      writable = false;
+    } else if ((lwr != "ram") && (lwr != "true")) {
+      cmd.setError(QString("Syntax error: unparsable writable flag '%1").arg(cmd.arg(2)));
+      return;
+    }
+  }
+
+  if (!window->cpu()->getSystem()->memory()->disjointFromAll(addr, size)) {
+    cmd.setError(
+      QString("Error: A block of size %1 at address %2 overlaps an existing block")
+        .arg(size, addr));
+  } else if (!window->cpu()->getSystem()->memory()->add(MemoryBank(addr, size, writable))) {
+    cmd.setError(
+      QString("Error: Could not add memory block of size %1 at address %2").arg(size, addr));
+  }
+}
+
+void BankCommand::del() {
+  word addr;
+
+  if (cmd.numArgs() != 2) {
+    cmd.setError("Syntax error: The 'del' subcommand requires exactly one parameter");
+    return;
+  }
+  addr = parseWord(1, "Syntax error: unparsable address '%1'");
+  if (!cmd.success()) {
+    return;
+  }
+
+  auto bank = window->cpu()->getSystem()->memory()->bank(addr);
+  if (!bank.valid()) {
+    cmd.setError(QString("Error: No memory bank has address '%1'").arg(cmd.arg(1)));
+    return;
+  }
+  if (window -> query(QString("Are you sure you want to delete the %1 block size %2 starting at %3? (Y/N)")
+      .arg((bank.writable()) ? "RAM" : "ROM ")
+      .arg(bank.size(), 4, 16, QChar('0'))
+      .arg(bank.start(), 4, 16, QChar('0')), "yn") == "y") {
+    window->cpu()->getSystem()->memory()->remove(bank);
+  }
 }
 
 

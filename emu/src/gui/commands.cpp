@@ -23,7 +23,7 @@ Command::Command(CommandLineEdit &edit) : m_line(edit.text()) {
       setError(QString("Syntax error: expected at least %1 arguments").arg(m_definition.minArgs()));
       return;
     }
-    if ((m_definition.maxArgs() >= 0) && (numArgs() > m_definition.maxArgs())) {
+    if ((m_definition.maxArgs() >= m_definition.minArgs()) && (numArgs() > m_definition.maxArgs())) {
       setError(QString("Syntax error: expected at most %1 arguments").arg(m_definition.minArgs()));
       return;
     }
